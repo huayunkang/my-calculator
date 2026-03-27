@@ -6,11 +6,10 @@ import matplotlib.pyplot as plt
 st.set_page_config(page_title="全能微积分计算器", page_icon="🧮", layout="centered")
 
 st.title("🧮 手机全能计算器 Pro Max")
-st.markdown("微积分神器 | 智能解方程 | 程序员工具箱")
+st.markdown("微积分 | 解方程 | 级数求和 | 程序员")
 
 dark_mode = st.toggle("🌙 开启暗黑图表模式")
 
-# 1. 如果网页刚打开，先在记忆里存一个初始公式
 if "math_expr" not in st.session_state:
     st.session_state.math_expr = "x**2 + 2*x"
 
@@ -21,15 +20,15 @@ def clear_expr():
     st.session_state.math_expr = ""
 
 # ==========================================
-# 🌟 核心升级：一次性初始化 x, y, z 三个符号！
+# 🌟 核心升级：增加 n, i, k 作为求和常用的专属变量！
 # ==========================================
-x, y, z = sp.symbols('x y z')
+x, y, z, n, i, k = sp.symbols('x y z n i k')
 
-# 新增了第三个标签页！
-tab_math, tab_eq, tab_prog = st.tabs(["📚 微积分运算", "🔍 解多元方程", "💻 程序员(进制)"])
+# 🌟 新增了第四个标签页！
+tab_math, tab_eq, tab_sum, tab_prog = st.tabs(["📚 微积分运算", "🔍 解多元方程", "➕ 级数与求和", "💻 程序员(进制)"])
 
 # ------------------------------------------
-# 第一页：微积分专属页面 (保持不变)
+# 第一页：微积分专属页面
 # ------------------------------------------
 with tab_math:
     with st.expander("🎹 点击展开科学计算快捷键盘"):
@@ -138,49 +137,84 @@ with tab_math:
             st.error("计算失败，请检查公式或上下限格式！")
 
 # ------------------------------------------
-# 第二页：全新！智能解方程页面
+# 第二页：智能解方程页面
 # ------------------------------------------
 with tab_eq:
     st.markdown("### 🔍 智能方程求解器")
-    st.info("💡 提示：支持一元、二元甚至三元方程！如果有多个方程，请用 **英文逗号 (,)** 隔开。可以直接输入 `=` 号！")
+    st.info("💡 提示：支持一元、二元甚至三元方程！如果有多个方程，请用 **英文逗号 (,)** 隔开。")
     
     eq_str = st.text_input("请输入方程组:", value="x + y + z = 6, x - y = 1, 2*x + y - z = 1")
     
     if st.button("🚀 一键求解方程"):
         try:
-            # 1. 智能解析输入的字符串
             eq_list = []
-            # 按照逗号拆分多个方程
             for eq in eq_str.split(','):
                 eq = eq.strip()
                 if not eq: continue
-                
-                # 如果用户输入了 '='，比如 x + y = 5，自动帮它转换成数学等式
                 if '=' in eq:
                     left, right = eq.split('=')
                     eq_list.append(sp.Eq(sp.sympify(left), sp.sympify(right)))
                 else:
-                    # 如果没写等号，默认这个式子等于 0
                     eq_list.append(sp.sympify(eq))
             
-            # 2. 召唤 SymPy 的求解魔法
             solution = sp.solve(eq_list, dict=True)
             
-            # 3. 完美展示结果
             if not solution:
-                st.warning("⚠️ 该方程组无解，或者输入格式有误。")
+                st.warning("⚠️ 该方程无解，或者输入格式有误。")
             else:
                 st.success("🎉 求解成功！")
                 for idx, sol in enumerate(solution):
                     st.markdown(f"**可能解 {idx + 1}:**")
-                    # 将字典结果拼接成漂亮的 LaTeX 格式展示
                     sol_latex = ", \\quad ".join([f"{sp.latex(var)} = {sp.latex(val)}" for var, val in sol.items()])
                     st.latex(sol_latex)
-        except Exception as e:
+        except Exception:
             st.error("解析失败，请确保格式正确 (比如 2x 要写成 2*x)。")
 
 # ------------------------------------------
-# 第三页：程序员(进制转换)页面
+# 第三页：全新！级数与求和公式
+# ------------------------------------------
+with tab_sum:
+    st.markdown("### ➕ 西格玛 (Σ) 求和神器")
+    st.info("💡 **高能提示：** 求和变量默认使用 `n` 或 `i`。如果想算**加到无穷大**，上限请填入两个小写字母 `oo` ！！")
+    
+    sum_expr_str = st.text_input("请输入求和通项公式 (例如: n**2 或 1/2**n):", value="n")
+    
+    col_s1, col_s2 = st.columns(2)
+    sum_lower_str = col_s1.text_input("求和下限 (如: 1):", value="1")
+    sum_upper_str = col_s2.text_input("求和上限 (如: 100 或 oo):", value="100")
+    
+    if st.button("🧮 计算级数求和"):
+        try:
+            func_sum = sp.sympify(sum_expr_str)
+            
+            # 智能探测用户用的是哪个字母(n, i, k, 或者 x)
+            free_vars = func_sum.free_symbols
+            if n in free_vars: var = n
+            elif i in free_vars: var = i
+            elif k in free_vars: var = k
+            elif x in free_vars: var = x
+            else: var = n # 如果输入的是纯数字，默认用 n
+            
+            lower = sp.sympify(sum_lower_str)
+            upper = sp.sympify(sum_upper_str)
+            
+            # 召唤 SymPy 的求和魔法！
+            sum_obj = sp.Sum(func_sum, (var, lower, upper))
+            result = sum_obj.doit()
+            
+            st.success("🎉 求和计算成功！")
+            # 完美渲染带上下限的大 Σ 符号公式
+            st.latex(f"{sp.latex(sum_obj)} = {sp.latex(result)}")
+            
+            # 如果结果是具体的数字，且不是无穷大，给个小数提示
+            if result.is_number and not result.has(sp.oo):
+                st.info(f"**近似数值:** `{result.evalf():.6f}`")
+                
+        except Exception as e:
+            st.error("计算失败，请检查公式中是否正确使用了字母 n 或 i！")
+
+# ------------------------------------------
+# 第四页：程序员(进制转换)页面
 # ------------------------------------------
 with tab_prog:
     st.markdown("### 🔢 实时进制转换引擎")
@@ -199,4 +233,4 @@ with tab_prog:
             else:
                 st.warning("⚠️ 进制转换目前仅支持整数计算哦！")
         except Exception:
-            pass # 没输完时不显示报错
+            pass
