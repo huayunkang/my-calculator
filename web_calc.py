@@ -186,34 +186,80 @@ with tab_sum:
         except Exception: st.error("计算失败！")
 
 # ------------------------------------------
-# 第四页：全新！🌀 多重积分神仙模式
+# 第四页：全新！🌀 多重积分神仙模式 (带3D可视化)
 # ------------------------------------------
 with tab_multi:
     st.markdown("### 🌀 空间多重积分求解")
-    st.info("💡 **高能提示：** 外层积分放在上面，内层积分放在下面。边界支持包含变量（比如 y 的上限可以填 x）！")
+    st.info("💡 **高能提示：** 外层积分放在上面，内层积分放在下面。")
     
-    # 用 Radio 组件优雅地切换二重和三重
     int_type = st.radio("请选择积分维度:", ["∬ 二重积分 (dx dy)", "∭ 三重积分 (dx dy dz)"], horizontal=True)
     is_triple = "三重" in int_type
     
-    multi_expr = st.text_input("请输入被积函数 f(x,y,z):", value="x * y * z" if is_triple else "x * y")
+    multi_expr = st.text_input("请输入被积函数 f(x,y,z):", value="x * y * z" if is_triple else "sin(x) * cos(y)")
     
     st.markdown("---")
     st.markdown("**最外层积分 (dx):**")
     c_x1, c_x2 = st.columns(2)
-    xl_str = c_x1.text_input("x 下限:", value="0", key="xl")
-    xu_str = c_x2.text_input("x 上限:", value="1", key="xu")
+    xl_str = c_x1.text_input("x 下限:", value="-2", key="xl")
+    xu_str = c_x2.text_input("x 上限:", value="2", key="xu")
     
     st.markdown("**中层/内层积分 (dy):**")
     c_y1, c_y2 = st.columns(2)
-    yl_str = c_y1.text_input("y 下限 (可含x):", value="0", key="yl")
-    yu_str = c_y2.text_input("y 上限 (可含x):", value="x", key="yu")
+    yl_str = c_y1.text_input("y 下限 (可含x):", value="-2", key="yl")
+    yu_str = c_y2.text_input("y 上限 (可含x):", value="2", key="yu")
     
     if is_triple:
         st.markdown("**最内层积分 (dz):**")
         c_z1, c_z2 = st.columns(2)
         zl_str = c_z1.text_input("z 下限 (可含x,y):", value="0", key="zl")
         zu_str = c_z2.text_input("z 上限 (可含x,y):", value="x + y", key="zu")
+
+    # 🌟 核心 3D 画图引擎 🌟
+    def plot_3d_integral(func_expr, xl_val, xu_val, yl_func, yu_func):
+        fig = plt.figure(figsize=(8, 6))
+        ax = fig.add_subplot(111, projection='3d') # 召唤 3D 坐标系！
+        
+        if dark_mode:
+            plt.style.use('dark_background')
+            fig.patch.set_alpha(0.0)
+            ax.patch.set_alpha(0.0)
+            # 让坐标轴背景透明，更具极客感
+            ax.xaxis.set_pane_color((0.0, 0.0, 0.0, 0.0))
+            ax.yaxis.set_pane_color((0.0, 0.0, 0.0, 0.0))
+            ax.zaxis.set_pane_color((0.0, 0.0, 0.0, 0.0))
+            cmap_hl = 'cool' # 暗黑模式下的炫酷荧光色
+        else:
+            plt.style.use('default')
+            cmap_hl = 'plasma'
+
+        try:
+            # 智能提取作图范围
+            x_n = np.linspace(float(xl_val.evalf()), float(xu_val.evalf()), 40)
+            f_yl = sp.lambdify(x, yl_func, 'numpy')
+            f_yu = sp.lambdify(x, yu_func, 'numpy')
+            
+            y_min_arr = f_yl(x_n)
+            y_max_arr = f_yu(x_n)
+            if isinstance(y_min_arr, (int, float)): y_min_arr = np.full_like(x_n, y_min_arr)
+            if isinstance(y_max_arr, (int, float)): y_max_arr = np.full_like(x_n, y_max_arr)
+            
+            y_min, y_max = np.min(y_min_arr), np.max(y_max_arr)
+            y_n = np.linspace(y_min, y_max, 40)
+            X, Y = np.meshgrid(x_n, y_n)
+            
+            f_np = sp.lambdify((x, y), func_expr, 'numpy')
+            Z = f_np(X, Y)
+            if isinstance(Z, (int, float)): Z = np.full_like(X, Z)
+            
+            # 画出华丽的 3D 曲面
+            ax.plot_surface(X, Y, Z, alpha=0.8, cmap=cmap_hl, edgecolor='none')
+            
+            ax.set_xlabel('X 轴')
+            ax.set_ylabel('Y 轴')
+            ax.set_zlabel('Z = f(x,y)')
+            st.pyplot(fig)
+        except Exception as e:
+            st.warning("⚠️ 3D 图表渲染失败，可能由于边界函数过于复杂。")
 
     if st.button("🌀 发动多重积分魔法"):
         try:
@@ -223,15 +269,15 @@ with tab_multi:
             
             if is_triple:
                 zl, zu = sp.sympify(zl_str), sp.sympify(zu_str)
-                # 核心魔法：从内向外积分 dz -> dy -> dx
                 result = sp.integrate(f, (z, zl, zu), (y, yl, yu), (x, xl, xu))
-                st.success("🎉 三重积分计算成功！")
-                st.latex(f"\\int_{{{sp.latex(xl)}}}^{{{sp.latex(xu)}}} \\int_{{{sp.latex(yl)}}}^{{{sp.latex(yu)}}} \\int_{{{sp.latex(zl)}}}^{{{sp.latex(zu)}}} ({sp.latex(f)}) \\, dz \\, dy \\, dx = {sp.latex(result)}")
+                st.success("🎉 三重积分计算成功！(注: 4D 结果无法绘制图像)")
+                st.latex(f"\\iiint ({sp.latex(f)}) \\, dz \\, dy \\, dx = {sp.latex(result)}")
             else:
-                # 二重积分 dy -> dx
                 result = sp.integrate(f, (y, yl, yu), (x, xl, xu))
                 st.success("🎉 二重积分计算成功！")
-                st.latex(f"\\int_{{{sp.latex(xl)}}}^{{{sp.latex(xu)}}} \\int_{{{sp.latex(yl)}}}^{{{sp.latex(yu)}}} ({sp.latex(f)}) \\, dy \\, dx = {sp.latex(result)}")
+                st.latex(f"\\iint ({sp.latex(f)}) \\, dy \\, dx = {sp.latex(result)}")
+                # 如果是二重积分，召唤 3D 画图！
+                plot_3d_integral(f, xl, xu, yl, yu)
                 
             if result.is_number and not result.has(sp.oo):
                 st.info(f"**近似数值:** `{result.evalf():.6f}`")
