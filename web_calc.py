@@ -5,28 +5,26 @@ import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="全能微积分计算器", page_icon="🧮", layout="centered")
 
-st.title("🧮 手机全能计算器 Ultra")
-st.markdown("微积分 | 解方程 | 级数求和 | 多重积分 | 程序员")
+st.title("🧮 手机全能计算器 Ultra Max")
+st.markdown("微积分 | 解方程 | 级数 | 多重积分 | 线性代数 | 程序员")
 
 dark_mode = st.toggle("🌙 开启暗黑图表模式")
 
 if "math_expr" not in st.session_state:
     st.session_state.math_expr = "x**2 + 2*x"
 
-def add_to_expr(text):
-    st.session_state.math_expr += text
+def add_to_expr(text): st.session_state.math_expr += text
+def clear_expr(): st.session_state.math_expr = ""
 
-def clear_expr():
-    st.session_state.math_expr = ""
-
-# 🌟 全局统一符号定义
 x, y, z, n, i, k = sp.symbols('x y z n i k')
 
-# 🌟 瘦身后的五大标签页，适配手机横排
-tab_math, tab_eq, tab_sum, tab_multi, tab_prog = st.tabs(["📚 微积分", "🔍 解方程", "➕ 级数", "🌀 多重积分", "💻 程序员"])
+# 🌟 震撼升级：六大顶级标签页！
+tab_math, tab_eq, tab_sum, tab_multi, tab_linalg, tab_prog = st.tabs(
+    ["📚 微积分", "🔍 解方程", "➕ 级数", "🌀 多重积分", "🧮 线性代数", "💻 程序员"]
+)
 
 # ------------------------------------------
-# 第一页：微积分专属页面 (保持不变)
+# 第一页：微积分
 # ------------------------------------------
 with tab_math:
     with st.expander("🎹 点击展开科学计算快捷键盘"):
@@ -52,8 +50,8 @@ with tab_math:
 
     st.markdown("**(可选) 定积分上下限设置：**")
     col_a, col_b = st.columns(2)
-    lower_limit_str = col_a.text_input("积分下限 a (可填 pi 等):", value="0")
-    upper_limit_str = col_b.text_input("积分上限 b (可填 pi 等):", value="2")
+    lower_limit_str = col_a.text_input("积分下限 a:", value="0")
+    upper_limit_str = col_b.text_input("积分上限 b:", value="2")
 
     col1, col2, col3, col4 = st.columns(4)
 
@@ -98,8 +96,7 @@ with tab_math:
             result = sp.sympify(expr_str)
             st.success("计算成功！")
             st.latex(f"= {sp.latex(result)}") 
-        except:
-            st.error("公式格式有误！")
+        except: st.error("公式格式有误！")
 
     if col2.button("📈 求导数"):
         try:
@@ -108,8 +105,7 @@ with tab_math:
             st.success("求导成功！")
             st.latex(f"\\frac{{d}}{{dx}}({sp.latex(func)}) = {sp.latex(result)}")
             plot_graph(result)
-        except:
-            st.error("求导失败！")
+        except: st.error("求导失败！")
 
     if col3.button("📉 不定积分"):
         try:
@@ -118,21 +114,18 @@ with tab_math:
             st.success("不定积分成功！")
             st.latex(f"\\int ({sp.latex(func)}) dx = {sp.latex(result)}")
             plot_graph(result)
-        except:
-            st.error("不定积分失败！")
+        except: st.error("不定积分失败！")
 
     if col4.button("📊 定积分"):
         try:
             func = sp.sympify(expr_str)
-            a = sp.sympify(lower_limit_str)
-            b = sp.sympify(upper_limit_str)
+            a, b = sp.sympify(lower_limit_str), sp.sympify(upper_limit_str)
             result = sp.integrate(func, (x, a, b))
             st.success("定积分计算成功！")
             st.latex(f"\\int_{{{sp.latex(a)}}}^{{{sp.latex(b)}}} ({sp.latex(func)}) dx = {sp.latex(result)}")
             st.info(f"**近似数值:** `{result.evalf():.4f}`")
             plot_graph(func, float(a.evalf()), float(b.evalf()))
-        except Exception:
-            st.error("计算失败，请检查公式或上下限格式！")
+        except: st.error("计算失败！")
 
 # ------------------------------------------
 # 第二页：解方程
@@ -152,14 +145,14 @@ with tab_eq:
                 else:
                     eq_list.append(sp.sympify(eq))
             solution = sp.solve(eq_list, dict=True)
-            if not solution: st.warning("⚠️ 该方程无解，或者输入格式有误。")
+            if not solution: st.warning("⚠️ 无解或格式有误。")
             else:
                 st.success("🎉 求解成功！")
                 for idx, sol in enumerate(solution):
                     st.markdown(f"**可能解 {idx + 1}:**")
                     sol_latex = ", \\quad ".join([f"{sp.latex(var)} = {sp.latex(val)}" for var, val in sol.items()])
                     st.latex(sol_latex)
-        except Exception: st.error("解析失败！")
+        except: st.error("解析失败！")
 
 # ------------------------------------------
 # 第三页：级数求和
@@ -183,109 +176,140 @@ with tab_sum:
             st.latex(f"{sp.latex(sum_obj)} = {sp.latex(result)}")
             if result.is_number and not result.has(sp.oo):
                 st.info(f"**近似数值:** `{result.evalf():.6f}`")
-        except Exception: st.error("计算失败！")
+        except: st.error("计算失败！")
 
 # ------------------------------------------
-# 第四页：全新！🌀 多重积分神仙模式 (带3D可视化)
+# 第四页：多重积分 (带3D)
 # ------------------------------------------
 with tab_multi:
     st.markdown("### 🌀 空间多重积分求解")
-    st.info("💡 **高能提示：** 外层积分放在上面，内层积分放在下面。")
-    
-    int_type = st.radio("请选择积分维度:", ["∬ 二重积分 (dx dy)", "∭ 三重积分 (dx dy dz)"], horizontal=True)
+    int_type = st.radio("请选择积分维度:", ["∬ 二重积分", "∭ 三重积分"], horizontal=True)
     is_triple = "三重" in int_type
+    multi_expr = st.text_input("被积函数 f(x,y,z):", value="x * y * z" if is_triple else "sin(x) * cos(y)")
     
-    multi_expr = st.text_input("请输入被积函数 f(x,y,z):", value="x * y * z" if is_triple else "sin(x) * cos(y)")
-    
-    st.markdown("---")
     st.markdown("**最外层积分 (dx):**")
     c_x1, c_x2 = st.columns(2)
-    xl_str = c_x1.text_input("x 下限:", value="-2", key="xl")
-    xu_str = c_x2.text_input("x 上限:", value="2", key="xu")
+    xl_str, xu_str = c_x1.text_input("x 下限:", value="-2"), c_x2.text_input("x 上限:", value="2")
     
     st.markdown("**中层/内层积分 (dy):**")
     c_y1, c_y2 = st.columns(2)
-    yl_str = c_y1.text_input("y 下限 (可含x):", value="-2", key="yl")
-    yu_str = c_y2.text_input("y 上限 (可含x):", value="2", key="yu")
+    yl_str, yu_str = c_y1.text_input("y 下限:", value="-2"), c_y2.text_input("y 上限:", value="2")
     
     if is_triple:
         st.markdown("**最内层积分 (dz):**")
         c_z1, c_z2 = st.columns(2)
-        zl_str = c_z1.text_input("z 下限 (可含x,y):", value="0", key="zl")
-        zu_str = c_z2.text_input("z 上限 (可含x,y):", value="x + y", key="zu")
+        zl_str, zu_str = c_z1.text_input("z 下限:", value="0"), c_z2.text_input("z 上限:", value="x + y")
 
-    # 🌟 核心 3D 画图引擎 🌟
     def plot_3d_integral(func_expr, xl_val, xu_val, yl_func, yu_func):
         fig = plt.figure(figsize=(8, 6))
-        ax = fig.add_subplot(111, projection='3d') # 召唤 3D 坐标系！
-        
+        ax = fig.add_subplot(111, projection='3d')
         if dark_mode:
             plt.style.use('dark_background')
             fig.patch.set_alpha(0.0)
             ax.patch.set_alpha(0.0)
-            # 让坐标轴背景透明，更具极客感
-            ax.xaxis.set_pane_color((0.0, 0.0, 0.0, 0.0))
-            ax.yaxis.set_pane_color((0.0, 0.0, 0.0, 0.0))
-            ax.zaxis.set_pane_color((0.0, 0.0, 0.0, 0.0))
-            cmap_hl = 'cool' # 暗黑模式下的炫酷荧光色
+            ax.xaxis.set_pane_color((0,0,0,0)); ax.yaxis.set_pane_color((0,0,0,0)); ax.zaxis.set_pane_color((0,0,0,0))
+            cmap_hl = 'cool'
         else:
             plt.style.use('default')
             cmap_hl = 'plasma'
 
         try:
-            # 智能提取作图范围
             x_n = np.linspace(float(xl_val.evalf()), float(xu_val.evalf()), 40)
-            f_yl = sp.lambdify(x, yl_func, 'numpy')
-            f_yu = sp.lambdify(x, yu_func, 'numpy')
-            
-            y_min_arr = f_yl(x_n)
-            y_max_arr = f_yu(x_n)
+            f_yl, f_yu = sp.lambdify(x, yl_func, 'numpy'), sp.lambdify(x, yu_func, 'numpy')
+            y_min_arr, y_max_arr = f_yl(x_n), f_yu(x_n)
             if isinstance(y_min_arr, (int, float)): y_min_arr = np.full_like(x_n, y_min_arr)
             if isinstance(y_max_arr, (int, float)): y_max_arr = np.full_like(x_n, y_max_arr)
-            
-            y_min, y_max = np.min(y_min_arr), np.max(y_max_arr)
-            y_n = np.linspace(y_min, y_max, 40)
+            y_n = np.linspace(np.min(y_min_arr), np.max(y_max_arr), 40)
             X, Y = np.meshgrid(x_n, y_n)
-            
             f_np = sp.lambdify((x, y), func_expr, 'numpy')
             Z = f_np(X, Y)
             if isinstance(Z, (int, float)): Z = np.full_like(X, Z)
-            
-            # 画出华丽的 3D 曲面
             ax.plot_surface(X, Y, Z, alpha=0.8, cmap=cmap_hl, edgecolor='none')
-            
-            ax.set_xlabel('X 轴')
-            ax.set_ylabel('Y 轴')
-            ax.set_zlabel('Z = f(x,y)')
             st.pyplot(fig)
-        except Exception as e:
-            st.warning("⚠️ 3D 图表渲染失败，可能由于边界函数过于复杂。")
+        except: st.warning("⚠️ 3D 渲染跳过 (边界过于复杂)")
 
     if st.button("🌀 发动多重积分魔法"):
         try:
-            f = sp.sympify(multi_expr)
-            xl, xu = sp.sympify(xl_str), sp.sympify(xu_str)
-            yl, yu = sp.sympify(yl_str), sp.sympify(yu_str)
-            
+            f, xl, xu, yl, yu = sp.sympify(multi_expr), sp.sympify(xl_str), sp.sympify(xu_str), sp.sympify(yl_str), sp.sympify(yu_str)
             if is_triple:
                 zl, zu = sp.sympify(zl_str), sp.sympify(zu_str)
                 result = sp.integrate(f, (z, zl, zu), (y, yl, yu), (x, xl, xu))
-                st.success("🎉 三重积分计算成功！(注: 4D 结果无法绘制图像)")
+                st.success("🎉 三重积分计算成功！")
                 st.latex(f"\\iiint ({sp.latex(f)}) \\, dz \\, dy \\, dx = {sp.latex(result)}")
             else:
                 result = sp.integrate(f, (y, yl, yu), (x, xl, xu))
                 st.success("🎉 二重积分计算成功！")
                 st.latex(f"\\iint ({sp.latex(f)}) \\, dy \\, dx = {sp.latex(result)}")
-                # 如果是二重积分，召唤 3D 画图！
                 plot_3d_integral(f, xl, xu, yl, yu)
-                
-            if result.is_number and not result.has(sp.oo):
-                st.info(f"**近似数值:** `{result.evalf():.6f}`")
-        except Exception as e:
-            st.error("计算失败，请检查公式和上下边界是否合法！")
+            if result.is_number and not result.has(sp.oo): st.info(f"**近似数值:** `{result.evalf():.6f}`")
+        except: st.error("计算失败！")
 
 # ------------------------------------------
-# 第五页：程序员(进制转换)
+# 第五页：全新！🧮 线性代数与矩阵
+# ------------------------------------------
+with tab_linalg:
+    st.markdown("### 🧮 智能矩阵运算中心")
+    st.info("💡 **输入规则：** 同一行的数字用**空格或逗号**隔开，按 **回车键 (Enter)** 换行输入下一行。支持输入分数或未知数 $x$！")
+    
+    col_m1, col_m2 = st.columns(2)
+    mat_A_str = col_m1.text_area("输入矩阵 A:", value="1 2\n3 4", height=120)
+    mat_B_str = col_m2.text_area("输入矩阵 B (可选):", value="5 6\n7 8", height=120)
+
+    def parse_matrix(matrix_string):
+        if not matrix_string.strip(): return None
+        rows = matrix_string.strip().split('\n')
+        matrix_data = []
+        for row in rows:
+            elements = row.replace(',', ' ').split()
+            if elements:
+                matrix_data.append([sp.sympify(e) for e in elements])
+        return sp.Matrix(matrix_data)
+
+    st.markdown("**选择矩阵运算：**")
+    btn1, btn2, btn3, btn4, btn5 = st.columns(5)
+    
+    if btn1.button("A + B (求和)"):
+        try:
+            A, B = parse_matrix(mat_A_str), parse_matrix(mat_B_str)
+            result = A + B
+            st.success("✅ 矩阵加法计算成功！")
+            st.latex(f"{sp.latex(A)} + {sp.latex(B)} = {sp.latex(result)}")
+        except Exception: st.error("❌ 计算失败，请确保 A 和 B 的行数列数完全一致！")
+
+    if btn2.button("A × B (相乘)"):
+        try:
+            A, B = parse_matrix(mat_A_str), parse_matrix(mat_B_str)
+            result = A * B
+            st.success("✅ 矩阵乘法计算成功！")
+            st.latex(f"{sp.latex(A)} \\times {sp.latex(B)} = {sp.latex(result)}")
+        except Exception: st.error("❌ 计算失败，请确保 A 的列数等于 B 的行数！")
+
+    if btn3.button("| A | (行列式)"):
+        try:
+            A = parse_matrix(mat_A_str)
+            result = A.det()
+            st.success("✅ 行列式计算成功！")
+            st.latex(f"\\det({sp.latex(A)}) = {sp.latex(result)}")
+        except Exception: st.error("❌ 计算失败，求行列式必须是方阵（行数=列数）！")
+
+    if btn4.button("A⁻¹ (求逆)"):
+        try:
+            A = parse_matrix(mat_A_str)
+            result = A.inv()
+            st.success("✅ 逆矩阵计算成功！")
+            st.latex(f"{sp.latex(A)}^{{-1}} = {sp.latex(result)}")
+        except Exception: st.error("❌ 计算失败，该矩阵不可逆（行列式为0）或不是方阵！")
+        
+    if btn5.button("Aᵀ (转置)"):
+        try:
+            A = parse_matrix(mat_A_str)
+            result = A.T
+            st.success("✅ 矩阵转置成功！")
+            st.latex(f"{sp.latex(A)}^T = {sp.latex(result)}")
+        except Exception: st.error("❌ 解析失败！")
+
+# ------------------------------------------
+# 第六页：程序员(进制)
 # ------------------------------------------
 with tab_prog:
     st.markdown("### 🔢 实时进制转换")
