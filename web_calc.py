@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 st.set_page_config(page_title="全能微积分计算器", page_icon="🧮", layout="centered")
 
 st.title("🧮 手机全能计算器 Ultra Max")
-st.markdown("微积分 | 解方程 | 级数 | 多重积分 | 线性代数 | 程序员")
+st.markdown("微积分 | 解方程 | 级数 | 多重积分 | 线性代数 | 程序员 | 向量 | 旋转面 | 曲线积分")
 
 dark_mode = st.toggle("🌙 开启暗黑图表模式")
 
@@ -16,11 +16,10 @@ if "math_expr" not in st.session_state:
 def add_to_expr(text): st.session_state.math_expr += text
 def clear_expr(): st.session_state.math_expr = ""
 
-x, y, z, n, i, k = sp.symbols('x y z n i k')
+x, y, z, n, i, k, t = sp.symbols('x y z n i k t')
 
-# 🌟 震撼升级：六大顶级标签页！
-tab_math, tab_eq, tab_sum, tab_multi, tab_linalg, tab_prog = st.tabs(
-    ["📚 微积分", "🔍 解方程", "➕ 级数", "🌀 多重积分", "🧮 线性代数", "💻 程序员"]
+tab_math, tab_eq, tab_sum, tab_multi, tab_linalg, tab_prog, tab_vector, tab_surface, tab_line = st.tabs(
+    ["📚 微积分", "🔍 解方程", "➕ 级数", "🌀 多重积分", "🧮 线性代数", "💻 程序员", "📐 向量", "🏺 旋转面", "〰️ 曲线积分"]
 )
 
 # ------------------------------------------
@@ -179,7 +178,7 @@ with tab_sum:
         except: st.error("计算失败！")
 
 # ------------------------------------------
-# 第四页：多重积分 (带3D)
+# 第四页：多重积分
 # ------------------------------------------
 with tab_multi:
     st.markdown("### 🌀 空间多重积分求解")
@@ -228,7 +227,7 @@ with tab_multi:
             st.pyplot(fig)
         except: st.warning("⚠️ 3D 渲染跳过 (边界过于复杂)")
 
-    if st.button("🌀 发动多重积分魔法"):
+    if st.button("🌀 发动多重积分魔法 "):
         try:
             f, xl, xu, yl, yu = sp.sympify(multi_expr), sp.sympify(xl_str), sp.sympify(xu_str), sp.sympify(yl_str), sp.sympify(yu_str)
             if is_triple:
@@ -245,7 +244,7 @@ with tab_multi:
         except: st.error("计算失败！")
 
 # ------------------------------------------
-# 第五页：全新！🧮 线性代数与矩阵
+# 第五页：线性代数与矩阵
 # ------------------------------------------
 with tab_linalg:
     st.markdown("### 🧮 智能矩阵运算中心")
@@ -271,41 +270,31 @@ with tab_linalg:
     if btn1.button("A + B (求和)"):
         try:
             A, B = parse_matrix(mat_A_str), parse_matrix(mat_B_str)
-            result = A + B
-            st.success("✅ 矩阵加法计算成功！")
-            st.latex(f"{sp.latex(A)} + {sp.latex(B)} = {sp.latex(result)}")
-        except Exception: st.error("❌ 计算失败，请确保 A 和 B 的行数列数完全一致！")
+            st.latex(f"{sp.latex(A)} + {sp.latex(B)} = {sp.latex(A + B)}")
+        except Exception: st.error("❌ 计算失败！")
 
     if btn2.button("A × B (相乘)"):
         try:
             A, B = parse_matrix(mat_A_str), parse_matrix(mat_B_str)
-            result = A * B
-            st.success("✅ 矩阵乘法计算成功！")
-            st.latex(f"{sp.latex(A)} \\times {sp.latex(B)} = {sp.latex(result)}")
-        except Exception: st.error("❌ 计算失败，请确保 A 的列数等于 B 的行数！")
+            st.latex(f"{sp.latex(A)} \\times {sp.latex(B)} = {sp.latex(A * B)}")
+        except Exception: st.error("❌ 计算失败！")
 
     if btn3.button("| A | (行列式)"):
         try:
             A = parse_matrix(mat_A_str)
-            result = A.det()
-            st.success("✅ 行列式计算成功！")
-            st.latex(f"\\det({sp.latex(A)}) = {sp.latex(result)}")
-        except Exception: st.error("❌ 计算失败，求行列式必须是方阵（行数=列数）！")
+            st.latex(f"\\det({sp.latex(A)}) = {sp.latex(A.det())}")
+        except Exception: st.error("❌ 计算失败！")
 
     if btn4.button("A⁻¹ (求逆)"):
         try:
             A = parse_matrix(mat_A_str)
-            result = A.inv()
-            st.success("✅ 逆矩阵计算成功！")
-            st.latex(f"{sp.latex(A)}^{{-1}} = {sp.latex(result)}")
-        except Exception: st.error("❌ 计算失败，该矩阵不可逆（行列式为0）或不是方阵！")
+            st.latex(f"{sp.latex(A)}^{{-1}} = {sp.latex(A.inv())}")
+        except Exception: st.error("❌ 计算失败！")
         
     if btn5.button("Aᵀ (转置)"):
         try:
             A = parse_matrix(mat_A_str)
-            result = A.T
-            st.success("✅ 矩阵转置成功！")
-            st.latex(f"{sp.latex(A)}^T = {sp.latex(result)}")
+            st.latex(f"{sp.latex(A)}^T = {sp.latex(A.T)}")
         except Exception: st.error("❌ 解析失败！")
 
 # ------------------------------------------
@@ -325,3 +314,165 @@ with tab_prog:
                 c3.metric(label="八进制 (OCT)", value=oct(val))
                 c4.metric(label="十六进制 (HEX)", value=hex(val))
         except Exception: pass
+
+# ==========================================
+# 🌟 全新模块：第七页 向量计算
+# ==========================================
+with tab_vector:
+    st.markdown("### 📐 空间向量计算器")
+    st.info("💡 **规则：** 直接修改下方文本框的内容，点击按钮即可利用最新数据计算。支持代数 (如 2*x, y)。")
+    
+    # 这两个框直接作为全局数据源
+    vc1, vc2 = st.columns(2)
+    vecA_str = vc1.text_input("向量 $\\vec{A}$:", value="1, 2, 3")
+    vecB_str = vc2.text_input("向量 $\\vec{B}$:", value="4, 5, 6")
+    
+    def parse_vec(v_str):
+        # 将用户输入的字符串转换成 sympy 矩阵向量
+        return sp.Matrix([sp.sympify(e) for e in v_str.split(',')])
+
+    vb1, vb2, vb3, vb4 = st.columns(4)
+    if vb1.button("$\\vec{A} + \\vec{B}$"):
+        try:
+            A, B = parse_vec(vecA_str), parse_vec(vecB_str)
+            st.latex(f"\\vec{{A}} + \\vec{{B}} = {sp.latex(A + B)}")
+        except: st.error("格式错误！")
+            
+    if vb2.button("内积 (点乘)"):
+        try:
+            A, B = parse_vec(vecA_str), parse_vec(vecB_str)
+            result = A.dot(B)
+            st.latex(f"\\vec{{A}} \\cdot \\vec{{B}} = {sp.latex(result)}")
+        except: st.error("格式或维度错误！")
+            
+    if vb3.button("外积 (叉乘)"):
+        try:
+            A, B = parse_vec(vecA_str), parse_vec(vecB_str)
+            if len(A) != 3 or len(B) != 3:
+                st.warning("⚠️ 叉乘主要适用于三维向量！")
+            else:
+                result = A.cross(B)
+                st.latex(f"\\vec{{A}} \\times \\vec{{B}} = {sp.latex(result)}")
+        except: st.error("格式错误！")
+            
+    if vb4.button("求模长 $|\\vec{A}|$"):
+        try:
+            A = parse_vec(vecA_str)
+            st.latex(f"|\\vec{{A}}| = {sp.latex(A.norm())}")
+        except: st.error("格式错误！")
+
+# ==========================================
+# 🌟 全新模块：第八页 旋转面方程 (带 3D 渲染)
+# ==========================================
+with tab_surface:
+    st.markdown("### 🏺 旋转曲面生成器")
+    
+    sc1, sc2 = st.columns([2, 1])
+    curve_str = sc1.text_input("输入平面曲线方程 (如表示 $y=x^2$，输入 $x**2$):", value="x**2")
+    axis = sc2.radio("绕哪个轴旋转?", ["x轴", "y轴"], horizontal=True)
+    
+    st.markdown("**3D 渲染范围设置：**")
+    sc3, sc4 = st.columns(2)
+    plot_start = sc3.text_input("参数起点 (如 -2):", value="-2")
+    plot_end = sc4.text_input("参数终点 (如 2):", value="2")
+    
+    if st.button("🏺 生成方程 & 3D渲染"):
+        try:
+            f = sp.sympify(curve_str)
+            # 动态检测变量
+            free_vars = f.free_symbols
+            var = list(free_vars)[0] if free_vars else x
+            
+            # 数学公式推导
+            if "x" in axis:
+                surface_eq = sp.Eq(y**2 + z**2, f**2)
+                st.success(f"假设原曲线为 $y = {sp.latex(f)}$，绕 $x$ 轴旋转：")
+            else:
+                surface_eq = sp.Eq(x**2 + z**2, f**2)
+                st.success(f"假设原曲线为 $x = {sp.latex(f)}$，绕 $y$ 轴旋转：")
+            st.latex(sp.latex(surface_eq))
+            
+            # 3D 图形渲染
+            fig = plt.figure(figsize=(8, 6))
+            ax = fig.add_subplot(111, projection='3d')
+            if dark_mode:
+                plt.style.use('dark_background')
+                fig.patch.set_alpha(0.0)
+                ax.patch.set_alpha(0.0)
+                ax.xaxis.set_pane_color((0,0,0,0)); ax.yaxis.set_pane_color((0,0,0,0)); ax.zaxis.set_pane_color((0,0,0,0))
+                cmap_color = 'cool'
+            else:
+                plt.style.use('default')
+                cmap_color = 'viridis'
+
+            # 参数化构建 3D 矩阵
+            v_vals = np.linspace(float(sp.sympify(plot_start).evalf()), float(sp.sympify(plot_end).evalf()), 100)
+            theta_vals = np.linspace(0, 2 * np.pi, 100)
+            V, Theta = np.meshgrid(v_vals, theta_vals)
+            
+            f_lambdify = sp.lambdify(var, f, 'numpy')
+            R = f_lambdify(V)
+            if isinstance(R, (int, float)): 
+                R = np.full_like(V, R)
+
+            if "x" in axis:
+                X = V
+                Y = R * np.cos(Theta)
+                Z = R * np.sin(Theta)
+            else:
+                X = R * np.cos(Theta)
+                Y = V
+                Z = R * np.sin(Theta)
+
+            ax.plot_surface(X, Y, Z, cmap=cmap_color, alpha=0.9, edgecolor='none')
+            ax.set_xlabel('X Axis')
+            ax.set_ylabel('Y Axis')
+            ax.set_zlabel('Z Axis')
+            st.pyplot(fig)
+            
+        except Exception as e:
+            st.error("解析失败！请检查数学表达式或渲染范围。")
+
+# ==========================================
+# 🌟 全新模块：第九页 曲线积分
+# ==========================================
+with tab_line:
+    st.markdown("### 〰️ 第二类曲线积分 (力场做功)")
+    st.info("计算 $\\int_L P(x,y)dx + Q(x,y)dy$，使用参数方程 $x=x(t), y=y(t)$")
+    
+    lc1, lc2 = st.columns(2)
+    P_str = lc1.text_input("向量场 $P(x, y)$:", value="y")
+    Q_str = lc2.text_input("向量场 $Q(x, y)$:", value="x**2")
+    
+    lc3, lc4 = st.columns(2)
+    xt_str = lc3.text_input("曲线参数 $x(t)$:", value="t")
+    yt_str = lc4.text_input("曲线参数 $y(t)$:", value="t**2")
+    
+    lc5, lc6 = st.columns(2)
+    t_start_str = lc5.text_input("参数 $t$ 的起点:", value="0")
+    t_end_str = lc6.text_input("参数 $t$ 的终点:", value="1")
+    
+    if st.button("〰️ 一键计算做功积分"):
+        try:
+            P = sp.sympify(P_str)
+            Q = sp.sympify(Q_str)
+            x_t = sp.sympify(xt_str)
+            y_t = sp.sympify(yt_str)
+            t_start = sp.sympify(t_start_str)
+            t_end = sp.sympify(t_end_str)
+            
+            P_t = P.subs({x: x_t, y: y_t})
+            Q_t = Q.subs({x: x_t, y: y_t})
+            dx_dt = sp.diff(x_t, t)
+            dy_dt = sp.diff(y_t, t)
+            
+            integrand = P_t * dx_dt + Q_t * dy_dt
+            result = sp.integrate(integrand, (t, t_start, t_end))
+            
+            st.success("🎉 曲线积分计算成功！")
+            st.latex(f"\\int_{{{sp.latex(t_start)}}}^{{{sp.latex(t_end)}}} \\left[ ({sp.latex(P_t)}){sp.latex(dx_dt)} + ({sp.latex(Q_t)}){sp.latex(dy_dt)} \\right] dt = {sp.latex(result)}")
+            
+            if result.is_number:
+                st.info(f"**精确计算结果:** `{result}`")
+        except:
+            st.error("计算失败！请确保参数使用了变量 t。")
