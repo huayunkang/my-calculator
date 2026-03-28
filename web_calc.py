@@ -54,7 +54,7 @@ st.markdown(custom_css, unsafe_allow_html=True)
 st.markdown('<div class="title-text">🧮 Ultra Max 终极计算器</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle-text">带详细解题步骤的保姆级神器</div>', unsafe_allow_html=True)
 
-dark_mode = st.toggle("🌙 开启暗黑图表模式")
+dark_mode = st.toggle("🌙 开启暗黑图表模式 (推荐)")
 
 if "math_expr" not in st.session_state:
     st.session_state.math_expr = "x**2 - 5*x + 6"
@@ -68,6 +68,7 @@ tab_math, tab_eq, tab_sum, tab_multi, tab_linalg, tab_prog, tab_vector, tab_surf
     ["📚 微积分", "🔍 解方程", "➕ 级数", "🌀 多重积分", "🧮 线性代数", "💻 程序员", "📐 向量", "🏺 旋转面", "〰️ 曲线积分"]
 )
 
+# --- 画图通用函数 ---
 def plot_graph(func, fill_a=None, fill_b=None):
     if dark_mode:
         plt.style.use('dark_background')
@@ -104,9 +105,9 @@ def plot_graph(func, fill_a=None, fill_b=None):
     ax.grid(True, linestyle='--', alpha=0.3)
     st.pyplot(fig) 
 
-# ------------------------------------------
-# 第一页：微积分 (已加装计算步骤)
-# ------------------------------------------
+# ==========================================
+# 第一页：微积分 (加入过程)
+# ==========================================
 with tab_math:
     with st.expander("🎹 点击展开科学计算快捷键盘"):
         b1, b2, b3, b4 = st.columns(4)
@@ -114,6 +115,13 @@ with tab_math:
         b2.button("cos(", on_click=add_to_expr, args=("cos(",))
         b3.button("tan(", on_click=add_to_expr, args=("tan(",))
         b4.button("pi", on_click=add_to_expr, args=("pi",))
+        
+        b5, b6, b7, b8 = st.columns(4)
+        b5.button("log(", on_click=add_to_expr, args=("log(",))
+        b6.button("exp(", on_click=add_to_expr, args=("exp(",))
+        b7.button("sqrt(", on_click=add_to_expr, args=("sqrt(",))
+        b8.button("E", on_click=add_to_expr, args=("E",))
+
         b9, b10, b11, b12 = st.columns(4)
         b9.button("x", on_click=add_to_expr, args=("x",))
         b10.button("**", on_click=add_to_expr, args=("**",))
@@ -128,12 +136,42 @@ with tab_math:
 
     col1, col2, col3, col4 = st.columns(4)
 
+    # 🌟 恢复的基础计算功能，并加装了详细的代数变形过程
+    if col1.button("🟰 普通计算"):
+        try:
+            expr = sp.sympify(expr_str)
+            simplified = sp.simplify(expr)
+            expanded = sp.expand(expr)
+            
+            st.success("计算成功！")
+            with st.expander("👀 查看计算/化简过程", expanded=True):
+                st.markdown("**1. 原始解析表达式:**")
+                st.latex(sp.latex(expr))
+                
+                # 如果展开后和原来不一样，展示展开步骤
+                if expr != expanded and expanded != simplified:
+                    st.markdown("**2. 展开多项式:**")
+                    st.latex(sp.latex(expanded))
+                    
+                # 如果化简后和原来不一样，展示化简步骤
+                if expr != simplified:
+                    st.markdown("**3. 最简代数形式:**")
+                    st.latex(sp.latex(simplified))
+                    
+                st.markdown("**4. 最终答案:**")
+                st.latex(f"= {sp.latex(simplified)}")
+                
+            # 如果结果是纯数字，给出小数
+            if simplified.is_number and not simplified.has(sp.oo):
+                st.info(f"**近似数值:** `{simplified.evalf():.6f}`")
+        except: 
+            st.error("公式格式有误！")
+
     if col2.button("📈 求导数"):
         try:
             func = sp.sympify(expr_str)
             result = sp.diff(func, x)
             st.success("求导成功！")
-            # 🌟 步骤展开面板
             with st.expander("👀 查看求导详细过程", expanded=True):
                 st.markdown("**1. 设定原函数:**")
                 st.latex(f"f(x) = {sp.latex(func)}")
@@ -162,7 +200,7 @@ with tab_math:
             func = sp.sympify(expr_str)
             a, b = sp.sympify(lower_limit_str), sp.sympify(upper_limit_str)
             result = sp.integrate(func, (x, a, b))
-            anti_deriv = sp.integrate(func, x) # 获取原函数用于展示牛顿-莱布尼茨公式
+            anti_deriv = sp.integrate(func, x) 
             st.success("定积分计算成功！")
             with st.expander("👀 查看牛顿-莱布尼茨公式推导", expanded=True):
                 st.markdown("**1. 构建定积分:**")
@@ -176,7 +214,6 @@ with tab_math:
             st.info(f"**近似数值:** `{result.evalf():.4f}`")
             plot_graph(func, float(a.evalf()), float(b.evalf()))
         except: st.error("计算失败！")
-
 # ------------------------------------------
 # 第二页：解方程 (已加装代数变换过程)
 # ------------------------------------------
