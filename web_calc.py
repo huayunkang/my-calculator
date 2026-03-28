@@ -2,7 +2,7 @@ import streamlit as st
 import sympy as sp
 import numpy as np
 import matplotlib.pyplot as plt
-import streamlit.components.v1 as components  # 🌟 召唤小猫必须的库
+import streamlit.components.v1 as components  
 
 st.set_page_config(page_title="全能微积分计算器 Ultra", page_icon="🧮", layout="centered")
 
@@ -60,7 +60,7 @@ summon_mascot()
 st.markdown('<div class="title-text">🧮 Ultra Max 终极计算器</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle-text">保姆级微积分神器 • 风景吸猫版</div>', unsafe_allow_html=True)
 
-# 🌟 核心修复：用页面上的开关，强行接管背景和图表的控制权！
+# 🌟 全局统一的暗黑模式开关
 dark_mode = st.toggle("🌙 一键开启星空夜景模式 (全局生效)")
 
 # ==========================================
@@ -69,7 +69,6 @@ dark_mode = st.toggle("🌙 一键开启星空夜景模式 (全局生效)")
 day_bg_url = "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=2070" 
 night_bg_url = "https://images.unsplash.com/photo-1500417148159-68083bd7333a?q=80&w=2070" 
 
-# 根据开关状态，动态决定当前的背景图、卡片透明度和文字颜色
 current_bg = night_bg_url if dark_mode else day_bg_url
 mask_bg = "rgba(0, 0, 0, 0.65)" if dark_mode else "rgba(255, 255, 255, 0.3)"
 card_bg = "rgba(25, 25, 25, 0.8)" if dark_mode else "rgba(255, 255, 255, 0.8)"
@@ -80,39 +79,23 @@ custom_style = f"""
 <style>
     .stApp {{
         background-image: url("{current_bg}");
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
+        background-size: cover; background-position: center; background-attachment: fixed;
         transition: background-image 0.5s ease-in-out;
     }}
     .stApp::before {{
-        content: "";
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background-color: {mask_bg};
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
-        z-index: -1;
-        transition: background-color 0.5s ease-in-out;
+        content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background-color: {mask_bg}; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+        z-index: -1; transition: background-color 0.5s ease-in-out;
     }}
     .block-container {{
-        background-color: {card_bg};
-        padding: 40px !important;
-        border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        backdrop-filter: blur(10px);
-        color: {text_color};
+        background-color: {card_bg}; padding: 40px !important; border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3); backdrop-filter: blur(10px); color: {text_color};
         transition: all 0.5s ease-in-out;
     }}
     .title-text {{
         background: -webkit-linear-gradient(45deg, #FF416C, #FF4B2B, #7b2ff7, #2f9eff);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-size: 42px;
-        font-weight: 900;
-        text-align: center;
-        margin-bottom: 0px;
-        padding-bottom: 10px;
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        font-size: 42px; font-weight: 900; text-align: center; margin-bottom: 0px; padding-bottom: 10px;
         text-shadow: 0 2px 10px rgba(255,75,43,0.2);
     }}
     .subtitle-text {{
@@ -123,19 +106,12 @@ custom_style = f"""
         transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); font-weight: 600;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;
     }}
-    div.stButton > button:hover {{
-        transform: translateY(-3px); box-shadow: 0 8px 20px rgba(118, 75, 162, 0.4);
-    }}
+    div.stButton > button:hover {{ transform: translateY(-3px); box-shadow: 0 8px 20px rgba(118, 75, 162, 0.4); }}
     div.stTextInput > div > div > input, div.stTextArea > div > div > textarea {{
-        border-radius: 10px; background-color: {input_bg}; color: {text_color};
-        transition: all 0.5s ease-in-out;
+        border-radius: 10px; background-color: {input_bg}; color: {text_color}; transition: all 0.5s ease-in-out;
     }}
     button[data-baseweb="tab"] {{ font-size: 16px; font-weight: bold; }}
-    
-    /* 强行接管原生文字颜色，防止看不清 */
-    p, span, label, div[data-testid="stMarkdownContainer"] {{
-        color: {text_color} !important;
-    }}
+    p, span, label, div[data-testid="stMarkdownContainer"] {{ color: {text_color} !important; }}
 </style>
 """
 st.markdown(custom_style, unsafe_allow_html=True)
@@ -186,10 +162,10 @@ def plot_graph(func, fill_a=None, fill_b=None):
     ax.axhline(0, color='gray', linewidth=1)
     ax.axvline(0, color='gray', linewidth=1)
     ax.grid(True, linestyle='--', alpha=0.3)
-    st.pyplot(fig)
+    st.pyplot(fig) 
 
 # ------------------------------------------
-# 第一页：微积分 
+# 第一页：微积分
 # ------------------------------------------
 with tab_math:
     with st.expander("🎹 点击展开科学计算快捷键盘"):
@@ -383,7 +359,8 @@ with tab_multi:
     def plot_3d_integral(func_expr, xl_val, xu_val, yl_func, yu_func):
         fig = plt.figure(figsize=(8, 6))
         ax = fig.add_subplot(111, projection='3d')
-        if dark_mode_plots:
+        # 🌟 已经修复这里的暗黑模式变量名
+        if dark_mode:
             plt.style.use('dark_background')
             fig.patch.set_alpha(0.0)
             ax.patch.set_alpha(0.0)
@@ -600,7 +577,8 @@ with tab_surface:
             
             fig = plt.figure(figsize=(8, 6))
             ax = fig.add_subplot(111, projection='3d')
-            if dark_mode_plots:
+            # 🌟 修复关键点：所有的画图现在都统一听全局暗黑开关的指挥！
+            if dark_mode:
                 plt.style.use('dark_background')
                 fig.patch.set_alpha(0.0)
                 ax.patch.set_alpha(0.0)
@@ -625,7 +603,7 @@ with tab_surface:
             ax.set_xlabel('X Axis'); ax.set_ylabel('Y Axis'); ax.set_zlabel('Z Axis')
             st.pyplot(fig)
         except Exception as e:
-            st.error("解析失败！请检查数学表达式。")
+            st.error(f"解析失败！请检查数学表达式。")
 
 # ------------------------------------------
 # 第九页：曲线积分
