@@ -2,7 +2,7 @@ import streamlit as st
 import sympy as sp
 import numpy as np
 import matplotlib.pyplot as plt
-import streamlit.components.v1 as components  # 🌟 召唤小人必须的库
+import streamlit.components.v1 as components  # 🌟 召唤小猫必须的库
 
 st.set_page_config(page_title="全能微积分计算器 Ultra", page_icon="🧮", layout="centered")
 
@@ -16,7 +16,6 @@ def summon_mascot():
     if (!parentDoc.getElementById("cute-mascot")) {
         const mascot = parentDoc.createElement("div");
         mascot.id = "cute-mascot";
-        
         mascot.style.position = "fixed";
         mascot.style.bottom = "30px";
         mascot.style.right = "30px";
@@ -26,19 +25,16 @@ def summon_mascot():
         
         // 键盘猫 GIF
         mascot.innerHTML = '<img src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif" width="120px" style="pointer-events: none; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 3px solid #FF4B2B;"/>';
-        
         parentDoc.body.appendChild(mascot);
 
         let isDragging = false;
         let offsetX, offsetY;
-
         mascot.onmousedown = function(e) {
             isDragging = true;
             offsetX = e.clientX - mascot.getBoundingClientRect().left;
             offsetY = e.clientY - mascot.getBoundingClientRect().top;
             mascot.style.cursor = "grabbing";
         };
-
         parentDoc.onmousemove = function(e) {
             if (isDragging) {
                 mascot.style.left = (e.clientX - offsetX) + "px";
@@ -47,7 +43,6 @@ def summon_mascot():
                 mascot.style.right = "auto";
             }
         };
-
         parentDoc.onmouseup = function() {
             isDragging = false;
             mascot.style.cursor = "grab";
@@ -57,19 +52,34 @@ def summon_mascot():
     """
     components.html(mascot_code, height=0, width=0)
 
-# 启动！把猫主子请出来！
 summon_mascot()
 
 # ==========================================
-# 🎨 核心视觉升级：唯美风景背景 + 毛玻璃
+# 页面标题与统一开关
+# ==========================================
+st.markdown('<div class="title-text">🧮 Ultra Max 终极计算器</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle-text">保姆级微积分神器 • 风景吸猫版</div>', unsafe_allow_html=True)
+
+# 🌟 核心修复：用页面上的开关，强行接管背景和图表的控制权！
+dark_mode = st.toggle("🌙 一键开启星空夜景模式 (全局生效)")
+
+# ==========================================
+# 🎨 核心视觉升级：动态 CSS 注入
 # ==========================================
 day_bg_url = "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=2070" 
 night_bg_url = "https://images.unsplash.com/photo-1500417148159-68083bd7333a?q=80&w=2070" 
 
+# 根据开关状态，动态决定当前的背景图、卡片透明度和文字颜色
+current_bg = night_bg_url if dark_mode else day_bg_url
+mask_bg = "rgba(0, 0, 0, 0.65)" if dark_mode else "rgba(255, 255, 255, 0.3)"
+card_bg = "rgba(25, 25, 25, 0.8)" if dark_mode else "rgba(255, 255, 255, 0.8)"
+input_bg = "rgba(50, 50, 50, 0.9)" if dark_mode else "rgba(255, 255, 255, 0.9)"
+text_color = "#ffffff" if dark_mode else "#31333F"
+
 custom_style = f"""
 <style>
     .stApp {{
-        background-image: url("{day_bg_url}");
+        background-image: url("{current_bg}");
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
@@ -79,17 +89,20 @@ custom_style = f"""
         content: "";
         position: fixed;
         top: 0; left: 0; width: 100%; height: 100%;
-        background-color: rgba(255, 255, 255, 0.3);
-        backdrop-filter: blur(5px);
-        -webkit-backdrop-filter: blur(5px);
+        background-color: {mask_bg};
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
         z-index: -1;
+        transition: background-color 0.5s ease-in-out;
     }}
     .block-container {{
-        background-color: rgba(255, 255, 255, 0.75);
+        background-color: {card_bg};
         padding: 40px !important;
         border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         backdrop-filter: blur(10px);
+        color: {text_color};
+        transition: all 0.5s ease-in-out;
     }}
     .title-text {{
         background: -webkit-linear-gradient(45deg, #FF416C, #FF4B2B, #7b2ff7, #2f9eff);
@@ -103,7 +116,7 @@ custom_style = f"""
         text-shadow: 0 2px 10px rgba(255,75,43,0.2);
     }}
     .subtitle-text {{
-        text-align: center; color: #555; font-size: 16px; letter-spacing: 2px; margin-bottom: 30px;
+        text-align: center; color: #888; font-size: 16px; letter-spacing: 2px; margin-bottom: 30px;
     }}
     div.stButton > button {{
         border-radius: 12px; border: none; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
@@ -114,28 +127,18 @@ custom_style = f"""
         transform: translateY(-3px); box-shadow: 0 8px 20px rgba(118, 75, 162, 0.4);
     }}
     div.stTextInput > div > div > input, div.stTextArea > div > div > textarea {{
-        border-radius: 10px; background-color: rgba(255, 255, 255, 0.8);
+        border-radius: 10px; background-color: {input_bg}; color: {text_color};
+        transition: all 0.5s ease-in-out;
     }}
     button[data-baseweb="tab"] {{ font-size: 16px; font-weight: bold; }}
-
-    [data-theme="dark"] .stApp {{ background-image: url("{night_bg_url}"); }}
-    [data-theme="dark"] .stApp::before {{ background-color: rgba(0, 0, 0, 0.5); }}
-    [data-theme="dark"] .block-container {{ background-color: rgba(0, 0, 0, 0.6); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }}
-    [data-theme="dark"] div.stTextInput > div > div > input, [data-theme="dark"] div.stTextArea > div > div > textarea {{
-        background-color: rgba(50, 50, 50, 0.7); color: white;
+    
+    /* 强行接管原生文字颜色，防止看不清 */
+    p, span, label, div[data-testid="stMarkdownContainer"] {{
+        color: {text_color} !important;
     }}
-    [data-theme="dark"] .subtitle-text {{ color: #aaa; }}
 </style>
 """
 st.markdown(custom_style, unsafe_allow_html=True)
-
-# ==========================================
-# 页面内容区
-# ==========================================
-st.markdown('<div class="title-text">🧮 Ultra Max 终极计算器</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle-text">保姆级微积分神器 • 风景吸猫版</div>', unsafe_allow_html=True)
-
-dark_mode_plots = st.toggle("🌙 开启图表暗黑模式风格")
 
 if "math_expr" not in st.session_state:
     st.session_state.math_expr = "x**2 - 5*x + 6"
@@ -150,7 +153,7 @@ tab_math, tab_eq, tab_sum, tab_multi, tab_linalg, tab_prog, tab_vector, tab_surf
 )
 
 def plot_graph(func, fill_a=None, fill_b=None):
-    if dark_mode_plots:
+    if dark_mode:
         plt.style.use('dark_background')
         line_color = '#00ffcc' 
     else:
@@ -183,7 +186,7 @@ def plot_graph(func, fill_a=None, fill_b=None):
     ax.axhline(0, color='gray', linewidth=1)
     ax.axvline(0, color='gray', linewidth=1)
     ax.grid(True, linestyle='--', alpha=0.3)
-    st.pyplot(fig) 
+    st.pyplot(fig)
 
 # ------------------------------------------
 # 第一页：微积分 
