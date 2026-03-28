@@ -10,7 +10,6 @@ st.set_page_config(page_title="全能微积分计算器", page_icon="🧮", layo
 # ==========================================
 custom_css = """
 <style>
-    /* 极光渐变标题 */
     .title-text {
         background: -webkit-linear-gradient(45deg, #FF416C, #FF4B2B, #7b2ff7, #2f9eff);
         -webkit-background-clip: text;
@@ -21,8 +20,6 @@ custom_css = """
         margin-bottom: 0px;
         padding-bottom: 10px;
     }
-    
-    /* 副标题样式 */
     .subtitle-text {
         text-align: center;
         color: #888;
@@ -30,8 +27,6 @@ custom_css = """
         letter-spacing: 2px;
         margin-bottom: 30px;
     }
-
-    /* 按钮全局美化：圆角、阴影、微动效 */
     div.stButton > button {
         border-radius: 12px;
         border: none;
@@ -39,25 +34,14 @@ custom_css = """
         transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         font-weight: 600;
     }
-    
-    /* 鼠标悬浮时按钮微微上浮并增加发光阴影 */
     div.stButton > button:hover {
         transform: translateY(-3px);
         box-shadow: 0 8px 15px rgba(255, 75, 43, 0.3);
         border: 1px solid #FF4B2B;
     }
-
-    /* 文本输入框圆角化 */
-    div.stTextInput > div > div > input {
+    div.stTextInput > div > div > input, div.stTextArea > div > div > textarea {
         border-radius: 10px;
     }
-    
-    /* 文本域(多行输入框)圆角化 */
-    div.stTextArea > div > div > textarea {
-        border-radius: 10px;
-    }
-    
-    /* 标签页(Tabs)美化 */
     button[data-baseweb="tab"] {
         font-size: 16px;
         font-weight: bold;
@@ -67,14 +51,13 @@ custom_css = """
 """
 st.markdown(custom_css, unsafe_allow_html=True)
 
-# 使用自定义样式的标题
 st.markdown('<div class="title-text">🧮 Ultra Max 终极计算器</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle-text">微积分 • 解方程 • 级数 • 多重积分 • 线性代数 • 程序员 • 向量运算 • 空间渲染</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle-text">带详细解题步骤的保姆级神器</div>', unsafe_allow_html=True)
 
-dark_mode = st.toggle("🌙 开启暗黑图表模式 (推荐)")
+dark_mode = st.toggle("🌙 开启暗黑图表模式")
 
 if "math_expr" not in st.session_state:
-    st.session_state.math_expr = "x**2 + 2*x"
+    st.session_state.math_expr = "x**2 - 5*x + 6"
 
 def add_to_expr(text): st.session_state.math_expr += text
 def clear_expr(): st.session_state.math_expr = ""
@@ -85,8 +68,44 @@ tab_math, tab_eq, tab_sum, tab_multi, tab_linalg, tab_prog, tab_vector, tab_surf
     ["📚 微积分", "🔍 解方程", "➕ 级数", "🌀 多重积分", "🧮 线性代数", "💻 程序员", "📐 向量", "🏺 旋转面", "〰️ 曲线积分"]
 )
 
+def plot_graph(func, fill_a=None, fill_b=None):
+    if dark_mode:
+        plt.style.use('dark_background')
+        line_color = '#00ffcc' 
+    else:
+        plt.style.use('default')
+        line_color = '#FF4B2B' 
+        
+    fig, ax = plt.subplots(figsize=(6, 4))
+    fig.patch.set_alpha(0.0)
+    ax.patch.set_alpha(0.0)
+
+    f_np = sp.lambdify(x, func, 'numpy')
+    if fill_a is not None and fill_b is not None:
+        plot_min, plot_max = min(fill_a, fill_b) - 2, max(fill_a, fill_b) + 2
+    else:
+        plot_min, plot_max = -10, 10
+        
+    x_vals = np.linspace(plot_min, plot_max, 400)
+    y_vals = f_np(x_vals)
+    if isinstance(y_vals, (int, float)): y_vals = np.full_like(x_vals, y_vals)
+        
+    ax.plot(x_vals, y_vals, color=line_color, linewidth=2)
+    
+    if fill_a is not None and fill_b is not None:
+        fill_x = np.linspace(fill_a, fill_b, 100)
+        fill_y = f_np(fill_x)
+        if isinstance(fill_y, (int, float)): fill_y = np.full_like(fill_x, fill_y)
+        ax.fill_between(fill_x, fill_y, alpha=0.3, color='#7b2ff7', label="积分面积")
+        ax.legend()
+
+    ax.axhline(0, color='gray', linewidth=1)
+    ax.axvline(0, color='gray', linewidth=1)
+    ax.grid(True, linestyle='--', alpha=0.3)
+    st.pyplot(fig) 
+
 # ------------------------------------------
-# 第一页：微积分
+# 第一页：微积分 (已加装计算步骤)
 # ------------------------------------------
 with tab_math:
     with st.expander("🎹 点击展开科学计算快捷键盘"):
@@ -95,13 +114,6 @@ with tab_math:
         b2.button("cos(", on_click=add_to_expr, args=("cos(",))
         b3.button("tan(", on_click=add_to_expr, args=("tan(",))
         b4.button("pi", on_click=add_to_expr, args=("pi",))
-
-        b5, b6, b7, b8 = st.columns(4)
-        b5.button("log(", on_click=add_to_expr, args=("log(",))
-        b6.button("exp(", on_click=add_to_expr, args=("exp(",))
-        b7.button("sqrt(", on_click=add_to_expr, args=("sqrt(",))
-        b8.button("E", on_click=add_to_expr, args=("E",))
-
         b9, b10, b11, b12 = st.columns(4)
         b9.button("x", on_click=add_to_expr, args=("x",))
         b10.button("**", on_click=add_to_expr, args=("**",))
@@ -109,7 +121,6 @@ with tab_math:
         b12.button("🗑️ 清空", on_click=clear_expr)
 
     expr_str = st.text_input("请输入算式:", key="math_expr")
-
     st.markdown("**(可选) 定积分上下限设置：**")
     col_a, col_b = st.columns(2)
     lower_limit_str = col_a.text_input("积分下限 a:", value="0")
@@ -117,55 +128,19 @@ with tab_math:
 
     col1, col2, col3, col4 = st.columns(4)
 
-    def plot_graph(func, fill_a=None, fill_b=None):
-        if dark_mode:
-            plt.style.use('dark_background')
-            line_color = '#00ffcc' 
-        else:
-            plt.style.use('default')
-            line_color = '#FF4B2B' # 改为一个亮眼的橙红色
-            
-        fig, ax = plt.subplots(figsize=(6, 4))
-        fig.patch.set_alpha(0.0)
-        ax.patch.set_alpha(0.0)
-
-        f_np = sp.lambdify(x, func, 'numpy')
-        if fill_a is not None and fill_b is not None:
-            plot_min, plot_max = min(fill_a, fill_b) - 2, max(fill_a, fill_b) + 2
-        else:
-            plot_min, plot_max = -10, 10
-            
-        x_vals = np.linspace(plot_min, plot_max, 400)
-        y_vals = f_np(x_vals)
-        if isinstance(y_vals, (int, float)): y_vals = np.full_like(x_vals, y_vals)
-            
-        ax.plot(x_vals, y_vals, color=line_color, linewidth=2)
-        
-        if fill_a is not None and fill_b is not None:
-            fill_x = np.linspace(fill_a, fill_b, 100)
-            fill_y = f_np(fill_x)
-            if isinstance(fill_y, (int, float)): fill_y = np.full_like(fill_x, fill_y)
-            ax.fill_between(fill_x, fill_y, alpha=0.3, color='#7b2ff7', label="积分面积")
-            ax.legend()
-
-        ax.axhline(0, color='gray', linewidth=1)
-        ax.axvline(0, color='gray', linewidth=1)
-        ax.grid(True, linestyle='--', alpha=0.3)
-        st.pyplot(fig) 
-
-    if col1.button("🟰 计算"):
-        try:
-            result = sp.sympify(expr_str)
-            st.success("计算成功！")
-            st.latex(f"= {sp.latex(result)}") 
-        except: st.error("公式格式有误！")
-
     if col2.button("📈 求导数"):
         try:
             func = sp.sympify(expr_str)
             result = sp.diff(func, x)
             st.success("求导成功！")
-            st.latex(f"\\frac{{d}}{{dx}}({sp.latex(func)}) = {sp.latex(result)}")
+            # 🌟 步骤展开面板
+            with st.expander("👀 查看求导详细过程", expanded=True):
+                st.markdown("**1. 设定原函数:**")
+                st.latex(f"f(x) = {sp.latex(func)}")
+                st.markdown("**2. 应用求导算子:**")
+                st.latex(f"\\frac{{d}}{{dx}} \\left[ {sp.latex(func)} \\right]")
+                st.markdown("**3. 得出导函数:**")
+                st.latex(f"f'(x) = {sp.latex(result)}")
             plot_graph(result)
         except: st.error("求导失败！")
 
@@ -174,7 +149,11 @@ with tab_math:
             func = sp.sympify(expr_str)
             result = sp.integrate(func, x)
             st.success("不定积分成功！")
-            st.latex(f"\\int ({sp.latex(func)}) dx = {sp.latex(result)}")
+            with st.expander("👀 查看积分详细过程", expanded=True):
+                st.markdown("**1. 构建不定积分式:**")
+                st.latex(f"\\int \\left( {sp.latex(func)} \\right) dx")
+                st.markdown("**2. 求解反导数 (注意常数 C):**")
+                st.latex(f"= {sp.latex(result)} + C")
             plot_graph(result)
         except: st.error("不定积分失败！")
 
@@ -183,37 +162,72 @@ with tab_math:
             func = sp.sympify(expr_str)
             a, b = sp.sympify(lower_limit_str), sp.sympify(upper_limit_str)
             result = sp.integrate(func, (x, a, b))
+            anti_deriv = sp.integrate(func, x) # 获取原函数用于展示牛顿-莱布尼茨公式
             st.success("定积分计算成功！")
-            st.latex(f"\\int_{{{sp.latex(a)}}}^{{{sp.latex(b)}}} ({sp.latex(func)}) dx = {sp.latex(result)}")
+            with st.expander("👀 查看牛顿-莱布尼茨公式推导", expanded=True):
+                st.markdown("**1. 构建定积分:**")
+                st.latex(f"\\int_{{{sp.latex(a)}}}^{{{sp.latex(b)}}} \\left( {sp.latex(func)} \\right) dx")
+                st.markdown("**2. 求解原函数:**")
+                st.latex(f"F(x) = {sp.latex(anti_deriv)}")
+                st.markdown("**3. 代入上下限 $F(b) - F(a)$:**")
+                st.latex(f"\\left[ {sp.latex(anti_deriv)} \\right]_{{{sp.latex(a)}}}^{{{sp.latex(b)}}}")
+                st.markdown("**4. 得出确切值:**")
+                st.latex(f"= {sp.latex(result)}")
             st.info(f"**近似数值:** `{result.evalf():.4f}`")
             plot_graph(func, float(a.evalf()), float(b.evalf()))
         except: st.error("计算失败！")
 
 # ------------------------------------------
-# 第二页：解方程
+# 第二页：解方程 (已加装代数变换过程)
 # ------------------------------------------
 with tab_eq:
     st.markdown("### 🔍 智能方程求解器")
-    eq_str = st.text_input("请输入方程组 (用逗号隔开):", value="x + y + z = 6, x - y = 1, 2*x + y - z = 1")
-    if st.button("🚀 一键求解方程"):
+    eq_str = st.text_input("请输入方程 (用逗号隔开):", value="x**2 - 5*x + 6 = 0")
+    if st.button("🚀 解方程并查看过程"):
         try:
             eq_list = []
+            standard_forms = []
             for eq in eq_str.split(','):
                 eq = eq.strip()
                 if not eq: continue
                 if '=' in eq:
                     left, right = eq.split('=')
-                    eq_list.append(sp.Eq(sp.sympify(left), sp.sympify(right)))
+                    eq_obj = sp.Eq(sp.sympify(left), sp.sympify(right))
+                    eq_list.append(eq_obj)
+                    standard_forms.append(sp.sympify(left) - sp.sympify(right))
                 else:
                     eq_list.append(sp.sympify(eq))
+                    standard_forms.append(sp.sympify(eq))
+                    
             solution = sp.solve(eq_list, dict=True)
+            
             if not solution: st.warning("⚠️ 无解或格式有误。")
             else:
                 st.success("🎉 求解成功！")
-                for idx, sol in enumerate(solution):
-                    st.markdown(f"**👉 可能解 {idx + 1}:**")
-                    sol_latex = ", \\quad ".join([f"{sp.latex(var)} = {sp.latex(val)}" for var, val in sol.items()])
-                    st.latex(sol_latex)
+                
+                # 🌟 步骤展开面板
+                with st.expander("👀 查看方程推导与变形过程", expanded=True):
+                    st.markdown("**第一步：提取原始方程**")
+                    for eq in eq_list:
+                        st.latex(sp.latex(eq) if isinstance(eq, sp.Eq) else f"{sp.latex(eq)} = 0")
+                        
+                    st.markdown("**第二步：移项化为标准形式 ($f(x)=0$)**")
+                    for sf in standard_forms:
+                        st.latex(f"{sp.latex(sf)} = 0")
+                    
+                    # 尝试因式分解 (仅针对单变量有效)
+                    if len(standard_forms) == 1 and len(standard_forms[0].free_symbols) == 1:
+                        try:
+                            factored = sp.factor(standard_forms[0])
+                            if factored != standard_forms[0]:
+                                st.markdown("**第三步：多项式因式分解**")
+                                st.latex(f"{sp.latex(factored)} = 0")
+                        except: pass
+                        
+                    st.markdown("**第四步：得出最终解集**")
+                    for idx, sol in enumerate(solution):
+                        sol_latex = ", \\quad ".join([f"{sp.latex(var)} = {sp.latex(val)}" for var, val in sol.items()])
+                        st.latex(f"\\text{{解 }} {idx + 1}: \\quad {sol_latex}")
         except: st.error("解析失败！")
 
 # ------------------------------------------
@@ -307,12 +321,10 @@ with tab_multi:
         except: st.error("计算失败！")
 
 # ------------------------------------------
-# 第五页：线性代数与矩阵
+# 第五页：线性代数与矩阵 (已加装运算展示)
 # ------------------------------------------
 with tab_linalg:
     st.markdown("### 🧮 智能矩阵运算中心")
-    st.info("💡 **输入规则：** 同一行的数字用**空格或逗号**隔开，按 **回车键 (Enter)** 换行输入下一行。支持代数 $x$！")
-    
     col_m1, col_m2 = st.columns(2)
     mat_A_str = col_m1.text_area("输入矩阵 A:", value="1 2\n3 4", height=120)
     mat_B_str = col_m2.text_area("输入矩阵 B (可选):", value="5 6\n7 8", height=120)
@@ -327,38 +339,29 @@ with tab_linalg:
                 matrix_data.append([sp.sympify(e) for e in elements])
         return sp.Matrix(matrix_data)
 
-    st.markdown("**选择矩阵运算：**")
-    btn1, btn2, btn3, btn4, btn5 = st.columns(5)
-    
-    if btn1.button("A + B"):
+    btn1, btn2, btn3, btn4 = st.columns(4)
+    if btn2.button("A × B (相乘)"):
         try:
             A, B = parse_matrix(mat_A_str), parse_matrix(mat_B_str)
-            st.latex(f"{sp.latex(A)} + {sp.latex(B)} = {sp.latex(A + B)}")
-        except Exception: st.error("❌ 计算失败！")
-
-    if btn2.button("A × B"):
-        try:
-            A, B = parse_matrix(mat_A_str), parse_matrix(mat_B_str)
-            st.latex(f"{sp.latex(A)} \\times {sp.latex(B)} = {sp.latex(A * B)}")
-        except Exception: st.error("❌ 计算失败！")
-
-    if btn3.button("| A | (行列式)"):
-        try:
-            A = parse_matrix(mat_A_str)
-            st.latex(f"\\det({sp.latex(A)}) = {sp.latex(A.det())}")
-        except Exception: st.error("❌ 计算失败！")
-
+            result = A * B
+            st.success("✅ 矩阵乘法计算成功！")
+            with st.expander("👀 查看矩阵相乘形态", expanded=True):
+                st.latex(f"{sp.latex(A)} \\times {sp.latex(B)} = {sp.latex(result)}")
+        except Exception: st.error("❌ 计算失败，请确保 A 的列数等于 B 的行数！")
+        
     if btn4.button("A⁻¹ (求逆)"):
         try:
             A = parse_matrix(mat_A_str)
-            st.latex(f"{sp.latex(A)}^{{-1}} = {sp.latex(A.inv())}")
-        except Exception: st.error("❌ 计算失败！")
-        
-    if btn5.button("Aᵀ (转置)"):
-        try:
-            A = parse_matrix(mat_A_str)
-            st.latex(f"{sp.latex(A)}^T = {sp.latex(A.T)}")
-        except Exception: st.error("❌ 解析失败！")
+            result = A.inv()
+            st.success("✅ 逆矩阵计算成功！")
+            with st.expander("👀 查看求逆过程与行列式", expanded=True):
+                st.markdown("**1. 原矩阵:**")
+                st.latex(f"A = {sp.latex(A)}")
+                st.markdown("**2. 计算行列式 $|A|$ (若为0则不可逆):**")
+                st.latex(f"|A| = {sp.latex(A.det())}")
+                st.markdown("**3. 逆矩阵 $A^{-1}$:**")
+                st.latex(f"A^{{-1}} = {sp.latex(result)}")
+        except Exception: st.error("❌ 计算失败，不可逆或非方阵！")
 
 # ------------------------------------------
 # 第六页：程序员(进制)
@@ -485,9 +488,9 @@ with tab_surface:
         except Exception as e:
             st.error("解析失败！请检查数学表达式。")
 
-# ==========================================
-# 第九页：曲线积分
-# ==========================================
+# ------------------------------------------
+# 第九页：曲线积分 (已加装完整代入过程)
+# ------------------------------------------
 with tab_line:
     st.markdown("### 〰️ 第二类曲线积分 (力场做功)")
     
@@ -500,30 +503,40 @@ with tab_line:
     yt_str = lc4.text_input("曲线参数 $y(t)$:", value="t**2")
     
     lc5, lc6 = st.columns(2)
-    t_start_str = lc5.text_input("参数 $t$ 的起点:", value="0")
-    t_end_str = lc6.text_input("参数 $t$ 的终点:", value="1")
+    t_start_str = lc5.text_input("参数 $t$ 起点:", value="0")
+    t_end_str = lc6.text_input("参数 $t$ 终点:", value="1")
     
-    if st.button("🚀 一键计算做功积分"):
+    if st.button("🚀 计算做功积分并看步骤"):
         try:
-            P = sp.sympify(P_str)
-            Q = sp.sympify(Q_str)
-            x_t = sp.sympify(xt_str)
-            y_t = sp.sympify(yt_str)
-            t_start = sp.sympify(t_start_str)
-            t_end = sp.sympify(t_end_str)
+            P, Q = sp.sympify(P_str), sp.sympify(Q_str)
+            x_t, y_t = sp.sympify(xt_str), sp.sympify(yt_str)
+            t_start, t_end = sp.sympify(t_start_str), sp.sympify(t_end_str)
             
-            P_t = P.subs({x: x_t, y: y_t})
-            Q_t = Q.subs({x: x_t, y: y_t})
-            dx_dt = sp.diff(x_t, t)
-            dy_dt = sp.diff(y_t, t)
+            P_t, Q_t = P.subs({x: x_t, y: y_t}), Q.subs({x: x_t, y: y_t})
+            dx_dt, dy_dt = sp.diff(x_t, t), sp.diff(y_t, t)
             
             integrand = P_t * dx_dt + Q_t * dy_dt
             result = sp.integrate(integrand, (t, t_start, t_end))
             
             st.success("🎉 曲线积分计算成功！")
-            st.latex(f"\\int_{{{sp.latex(t_start)}}}^{{{sp.latex(t_end)}}} \\left[ ({sp.latex(P_t)}){sp.latex(dx_dt)} + ({sp.latex(Q_t)}){sp.latex(dy_dt)} \\right] dt = {sp.latex(result)}")
             
-            if result.is_number:
-                st.info(f"**精确计算结果:** `{result}`")
+            with st.expander("👀 查看极度舒适的微积分代换过程", expanded=True):
+                st.markdown("**1. 原始第二类曲线积分式:**")
+                st.latex(f"\\int_L ({sp.latex(P)})dx + ({sp.latex(Q)})dy")
+                
+                st.markdown("**2. 将 $x(t), y(t)$ 代入向量场得到 $P(t), Q(t)$:**")
+                st.latex(f"P(t) = {sp.latex(P_t)}, \\quad Q(t) = {sp.latex(Q_t)}")
+                
+                st.markdown("**3. 对参数方程求导得到微分项 $dx, dy$:**")
+                st.latex(f"dx = ({sp.latex(dx_dt)})dt, \\quad dy = ({sp.latex(dy_dt)})dt")
+                
+                st.markdown("**4. 组装为关于 $t$ 的一元定积分:**")
+                st.latex(f"\\int_{{{sp.latex(t_start)}}}^{{{sp.latex(t_end)}}} \\left[ ({sp.latex(P_t)})({sp.latex(dx_dt)}) + ({sp.latex(Q_t)})({sp.latex(dy_dt)}) \\right] dt")
+                
+                st.markdown("**5. 化简被积函数:**")
+                st.latex(f"\\int_{{{sp.latex(t_start)}}}^{{{sp.latex(t_end)}}} \\left( {sp.latex(sp.simplify(integrand))} \\right) dt")
+                
+                st.markdown("**6. 最终计算结果:**")
+                st.latex(f"= {sp.latex(result)}")
         except:
             st.error("计算失败！请确保参数使用了变量 t。")
