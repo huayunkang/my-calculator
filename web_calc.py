@@ -267,15 +267,15 @@ with tab_eq:
                         st.latex(f"\\text{{解 }} {idx + 1}: \\quad {sol_latex}")
         except: st.error("解析失败！")
 
-# ------------------------------------------
+# ==========================================
 # 第三页：级数求和
-# ------------------------------------------
+# ==========================================
 with tab_sum:
     st.markdown("### ➕ 西格玛 (Σ) 求和神器")
     sum_expr_str = st.text_input("求和通项公式 (如: n**2):", value="n")
     col_s1, col_s2 = st.columns(2)
     sum_lower_str = col_s1.text_input("求和下限:", value="1")
-    sum_upper_str = col_s2.text_input("求和上限 (如 oo):", value="100")
+    sum_upper_str = col_s2.text_input("求和上限 (如 oo):", value="10")
     if st.button("🧮 计算级数求和"):
         try:
             func_sum = sp.sympify(sum_expr_str)
@@ -285,15 +285,21 @@ with tab_sum:
             lower, upper = sp.sympify(sum_lower_str), sp.sympify(sum_upper_str)
             sum_obj = sp.Sum(func_sum, (var, lower, upper))
             result = sum_obj.doit()
+            
             st.success("🎉 求和计算成功！")
-            st.latex(f"{sp.latex(sum_obj)} = {sp.latex(result)}")
+            with st.expander("👀 查看级数求和展示", expanded=True):
+                st.markdown("**1. 级数表达式:**")
+                st.latex(sp.latex(sum_obj))
+                st.markdown("**2. 展开求和结果:**")
+                st.latex(f"= {sp.latex(result)}")
+            
             if result.is_number and not result.has(sp.oo):
                 st.info(f"**近似数值:** `{result.evalf():.6f}`")
         except: st.error("计算失败！")
 
-# ------------------------------------------
+# ==========================================
 # 第四页：多重积分
-# ------------------------------------------
+# ==========================================
 with tab_multi:
     st.markdown("### 🌀 空间多重积分求解")
     int_type = st.radio("请选择积分维度:", ["∬ 二重积分", "∭ 三重积分"], horizontal=True)
@@ -313,37 +319,12 @@ with tab_multi:
         c_z1, c_z2 = st.columns(2)
         zl_str, zu_str = c_z1.text_input("z 下限:", value="0"), c_z2.text_input("z 上限:", value="x + y")
 
-    def plot_3d_integral(func_expr, xl_val, xu_val, yl_func, yu_func):
-        fig = plt.figure(figsize=(8, 6))
-        ax = fig.add_subplot(111, projection='3d')
-        if dark_mode:
-            plt.style.use('dark_background')
-            fig.patch.set_alpha(0.0)
-            ax.patch.set_alpha(0.0)
-            ax.xaxis.set_pane_color((0,0,0,0)); ax.yaxis.set_pane_color((0,0,0,0)); ax.zaxis.set_pane_color((0,0,0,0))
-            cmap_hl = 'cool'
-        else:
-            plt.style.use('default')
-            cmap_hl = 'magma'
-
-        try:
-            x_n = np.linspace(float(xl_val.evalf()), float(xu_val.evalf()), 40)
-            f_yl, f_yu = sp.lambdify(x, yl_func, 'numpy'), sp.lambdify(x, yu_func, 'numpy')
-            y_min_arr, y_max_arr = f_yl(x_n), f_yu(x_n)
-            if isinstance(y_min_arr, (int, float)): y_min_arr = np.full_like(x_n, y_min_arr)
-            if isinstance(y_max_arr, (int, float)): y_max_arr = np.full_like(x_n, y_max_arr)
-            y_n = np.linspace(np.min(y_min_arr), np.max(y_max_arr), 40)
-            X, Y = np.meshgrid(x_n, y_n)
-            f_np = sp.lambdify((x, y), func_expr, 'numpy')
-            Z = f_np(X, Y)
-            if isinstance(Z, (int, float)): Z = np.full_like(X, Z)
-            ax.plot_surface(X, Y, Z, alpha=0.9, cmap=cmap_hl, edgecolor='none')
-            st.pyplot(fig)
-        except: st.warning("⚠️ 3D 渲染跳过 (边界过于复杂)")
-
     if st.button("🌀 发动多重积分魔法 "):
         try:
-            f, xl, xu, yl, yu = sp.sympify(multi_expr), sp.sympify(xl_str), sp.sympify(xu_str), sp.sympify(yl_str), sp.sympify(yu_str)
+            f = sp.sympify(multi_expr)
+            xl, xu = sp.sympify(xl_str), sp.sympify(xu_str)
+            yl, yu = sp.sympify(yl_str), sp.sympify(yu_str)
+            
             if is_triple:
                 zl, zu = sp.sympify(zl_str), sp.sympify(zu_str)
                 result = sp.integrate(f, (z, zl, zu), (y, yl, yu), (x, xl, xu))
@@ -353,13 +334,12 @@ with tab_multi:
                 result = sp.integrate(f, (y, yl, yu), (x, xl, xu))
                 st.success("🎉 二重积分计算成功！")
                 st.latex(f"\\iint ({sp.latex(f)}) \\, dy \\, dx = {sp.latex(result)}")
-                plot_3d_integral(f, xl, xu, yl, yu)
-            if result.is_number and not result.has(sp.oo): st.info(f"**近似数值:** `{result.evalf():.6f}`")
+            if result.is_number and not result.has(sp.oo): 
+                st.info(f"**近似数值:** `{result.evalf():.6f}`")
         except: st.error("计算失败！")
-
-# ------------------------------------------
-# 第五页：线性代数与矩阵 (已加装运算展示)
-# ------------------------------------------
+# ==========================================
+# 第五页：线性代数与矩阵
+# ==========================================
 with tab_linalg:
     st.markdown("### 🧮 智能矩阵运算中心")
     col_m1, col_m2 = st.columns(2)
@@ -376,7 +356,14 @@ with tab_linalg:
                 matrix_data.append([sp.sympify(e) for e in elements])
         return sp.Matrix(matrix_data)
 
-    btn1, btn2, btn3, btn4 = st.columns(4)
+    btn1, btn2, btn3, btn4, btn5 = st.columns(5)
+    
+    if btn1.button("A + B (求和)"):
+        try:
+            A, B = parse_matrix(mat_A_str), parse_matrix(mat_B_str)
+            st.latex(f"{sp.latex(A)} + {sp.latex(B)} = {sp.latex(A + B)}")
+        except: st.error("❌ 计算失败！")
+
     if btn2.button("A × B (相乘)"):
         try:
             A, B = parse_matrix(mat_A_str), parse_matrix(mat_B_str)
@@ -384,8 +371,14 @@ with tab_linalg:
             st.success("✅ 矩阵乘法计算成功！")
             with st.expander("👀 查看矩阵相乘形态", expanded=True):
                 st.latex(f"{sp.latex(A)} \\times {sp.latex(B)} = {sp.latex(result)}")
-        except Exception: st.error("❌ 计算失败，请确保 A 的列数等于 B 的行数！")
-        
+        except Exception: st.error("❌ 计算失败！")
+
+    if btn3.button("| A | (行列式)"):
+        try:
+            A = parse_matrix(mat_A_str)
+            st.latex(f"\\det({sp.latex(A)}) = {sp.latex(A.det())}")
+        except: st.error("❌ 计算失败！")
+
     if btn4.button("A⁻¹ (求逆)"):
         try:
             A = parse_matrix(mat_A_str)
@@ -399,10 +392,16 @@ with tab_linalg:
                 st.markdown("**3. 逆矩阵 $A^{-1}$:**")
                 st.latex(f"A^{{-1}} = {sp.latex(result)}")
         except Exception: st.error("❌ 计算失败，不可逆或非方阵！")
+        
+    if btn5.button("Aᵀ (转置)"):
+        try:
+            A = parse_matrix(mat_A_str)
+            st.latex(f"{sp.latex(A)}^T = {sp.latex(A.T)}")
+        except: st.error("❌ 解析失败！")
 
-# ------------------------------------------
+# ==========================================
 # 第六页：程序员(进制)
-# ------------------------------------------
+# ==========================================
 with tab_prog:
     st.markdown("### 🔢 实时进制转换")
     prog_expr = st.text_input("请输入整数或算式:", value="255", key="prog_input")
@@ -416,7 +415,7 @@ with tab_prog:
                 c2.metric(label="二进制 (BIN)", value=bin(val))
                 c3.metric(label="八进制 (OCT)", value=oct(val))
                 c4.metric(label="十六进制 (HEX)", value=hex(val))
-        except Exception: pass
+        except: pass
 
 # ==========================================
 # 第七页：向量计算
@@ -442,7 +441,10 @@ with tab_vector:
         try:
             A, B = parse_vec(vecA_str), parse_vec(vecB_str)
             result = A.dot(B)
-            st.latex(f"\\vec{{A}} \\cdot \\vec{{B}} = {sp.latex(result)}")
+            st.success("✅ 点乘计算完成")
+            with st.expander("👀 查看内积公式", expanded=True):
+                st.latex(f"\\vec{{A}} \\cdot \\vec{{B}} = ({sp.latex(A.T)}) \\cdot ({sp.latex(B.T)})")
+                st.latex(f"= {sp.latex(result)}")
         except: st.error("格式或维度错误！")
             
     if vb3.button("外积 (叉乘)"):
@@ -452,7 +454,9 @@ with tab_vector:
                 st.warning("⚠️ 叉乘主要适用于三维向量！")
             else:
                 result = A.cross(B)
-                st.latex(f"\\vec{{A}} \\times \\vec{{B}} = {sp.latex(result)}")
+                st.success("✅ 叉乘计算完成")
+                with st.expander("👀 查看外积公式", expanded=True):
+                    st.latex(f"\\vec{{A}} \\times \\vec{{B}} = {sp.latex(result)}")
         except: st.error("格式错误！")
             
     if vb4.button("求模长 $|\\vec{A}|$"):
@@ -522,12 +526,12 @@ with tab_surface:
             ax.set_zlabel('Z Axis')
             st.pyplot(fig)
             
-        except Exception as e:
+        except:
             st.error("解析失败！请检查数学表达式。")
 
-# ------------------------------------------
-# 第九页：曲线积分 (已加装完整代入过程)
-# ------------------------------------------
+# ==========================================
+# 第九页：曲线积分
+# ==========================================
 with tab_line:
     st.markdown("### 〰️ 第二类曲线积分 (力场做功)")
     
