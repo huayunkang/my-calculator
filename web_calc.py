@@ -5,10 +5,73 @@ import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="全能微积分计算器", page_icon="🧮", layout="centered")
 
-st.title("🧮 手机全能计算器 Ultra Max")
-st.markdown("微积分 | 解方程 | 级数 | 多重积分 | 线性代数 | 程序员 | 向量 | 旋转面 | 曲线积分")
+# ==========================================
+# 🎨 核心视觉升级：前端 CSS 黑魔法注入
+# ==========================================
+custom_css = """
+<style>
+    /* 极光渐变标题 */
+    .title-text {
+        background: -webkit-linear-gradient(45deg, #FF416C, #FF4B2B, #7b2ff7, #2f9eff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 42px;
+        font-weight: 900;
+        text-align: center;
+        margin-bottom: 0px;
+        padding-bottom: 10px;
+    }
+    
+    /* 副标题样式 */
+    .subtitle-text {
+        text-align: center;
+        color: #888;
+        font-size: 16px;
+        letter-spacing: 2px;
+        margin-bottom: 30px;
+    }
 
-dark_mode = st.toggle("🌙 开启暗黑图表模式")
+    /* 按钮全局美化：圆角、阴影、微动效 */
+    div.stButton > button {
+        border-radius: 12px;
+        border: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        font-weight: 600;
+    }
+    
+    /* 鼠标悬浮时按钮微微上浮并增加发光阴影 */
+    div.stButton > button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 15px rgba(255, 75, 43, 0.3);
+        border: 1px solid #FF4B2B;
+    }
+
+    /* 文本输入框圆角化 */
+    div.stTextInput > div > div > input {
+        border-radius: 10px;
+    }
+    
+    /* 文本域(多行输入框)圆角化 */
+    div.stTextArea > div > div > textarea {
+        border-radius: 10px;
+    }
+    
+    /* 标签页(Tabs)美化 */
+    button[data-baseweb="tab"] {
+        font-size: 16px;
+        font-weight: bold;
+        border-radius: 8px 8px 0 0;
+    }
+</style>
+"""
+st.markdown(custom_css, unsafe_allow_html=True)
+
+# 使用自定义样式的标题
+st.markdown('<div class="title-text">🧮 Ultra Max 终极计算器</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle-text">微积分 • 解方程 • 级数 • 多重积分 • 线性代数 • 程序员 • 向量运算 • 空间渲染</div>', unsafe_allow_html=True)
+
+dark_mode = st.toggle("🌙 开启暗黑图表模式 (推荐)")
 
 if "math_expr" not in st.session_state:
     st.session_state.math_expr = "x**2 + 2*x"
@@ -60,7 +123,7 @@ with tab_math:
             line_color = '#00ffcc' 
         else:
             plt.style.use('default')
-            line_color = '#1f77b4' 
+            line_color = '#FF4B2B' # 改为一个亮眼的橙红色
             
         fig, ax = plt.subplots(figsize=(6, 4))
         fig.patch.set_alpha(0.0)
@@ -82,7 +145,7 @@ with tab_math:
             fill_x = np.linspace(fill_a, fill_b, 100)
             fill_y = f_np(fill_x)
             if isinstance(fill_y, (int, float)): fill_y = np.full_like(fill_x, fill_y)
-            ax.fill_between(fill_x, fill_y, alpha=0.4, color='orange', label="定积分面积")
+            ax.fill_between(fill_x, fill_y, alpha=0.3, color='#7b2ff7', label="积分面积")
             ax.legend()
 
         ax.axhline(0, color='gray', linewidth=1)
@@ -131,7 +194,7 @@ with tab_math:
 # ------------------------------------------
 with tab_eq:
     st.markdown("### 🔍 智能方程求解器")
-    eq_str = st.text_input("请输入方程组:", value="x + y + z = 6, x - y = 1, 2*x + y - z = 1")
+    eq_str = st.text_input("请输入方程组 (用逗号隔开):", value="x + y + z = 6, x - y = 1, 2*x + y - z = 1")
     if st.button("🚀 一键求解方程"):
         try:
             eq_list = []
@@ -148,7 +211,7 @@ with tab_eq:
             else:
                 st.success("🎉 求解成功！")
                 for idx, sol in enumerate(solution):
-                    st.markdown(f"**可能解 {idx + 1}:**")
+                    st.markdown(f"**👉 可能解 {idx + 1}:**")
                     sol_latex = ", \\quad ".join([f"{sp.latex(var)} = {sp.latex(val)}" for var, val in sol.items()])
                     st.latex(sol_latex)
         except: st.error("解析失败！")
@@ -210,7 +273,7 @@ with tab_multi:
             cmap_hl = 'cool'
         else:
             plt.style.use('default')
-            cmap_hl = 'plasma'
+            cmap_hl = 'magma'
 
         try:
             x_n = np.linspace(float(xl_val.evalf()), float(xu_val.evalf()), 40)
@@ -223,7 +286,7 @@ with tab_multi:
             f_np = sp.lambdify((x, y), func_expr, 'numpy')
             Z = f_np(X, Y)
             if isinstance(Z, (int, float)): Z = np.full_like(X, Z)
-            ax.plot_surface(X, Y, Z, alpha=0.8, cmap=cmap_hl, edgecolor='none')
+            ax.plot_surface(X, Y, Z, alpha=0.9, cmap=cmap_hl, edgecolor='none')
             st.pyplot(fig)
         except: st.warning("⚠️ 3D 渲染跳过 (边界过于复杂)")
 
@@ -248,7 +311,7 @@ with tab_multi:
 # ------------------------------------------
 with tab_linalg:
     st.markdown("### 🧮 智能矩阵运算中心")
-    st.info("💡 **输入规则：** 同一行的数字用**空格或逗号**隔开，按 **回车键 (Enter)** 换行输入下一行。支持输入分数或未知数 $x$！")
+    st.info("💡 **输入规则：** 同一行的数字用**空格或逗号**隔开，按 **回车键 (Enter)** 换行输入下一行。支持代数 $x$！")
     
     col_m1, col_m2 = st.columns(2)
     mat_A_str = col_m1.text_area("输入矩阵 A:", value="1 2\n3 4", height=120)
@@ -267,13 +330,13 @@ with tab_linalg:
     st.markdown("**选择矩阵运算：**")
     btn1, btn2, btn3, btn4, btn5 = st.columns(5)
     
-    if btn1.button("A + B (求和)"):
+    if btn1.button("A + B"):
         try:
             A, B = parse_matrix(mat_A_str), parse_matrix(mat_B_str)
             st.latex(f"{sp.latex(A)} + {sp.latex(B)} = {sp.latex(A + B)}")
         except Exception: st.error("❌ 计算失败！")
 
-    if btn2.button("A × B (相乘)"):
+    if btn2.button("A × B"):
         try:
             A, B = parse_matrix(mat_A_str), parse_matrix(mat_B_str)
             st.latex(f"{sp.latex(A)} \\times {sp.latex(B)} = {sp.latex(A * B)}")
@@ -316,19 +379,16 @@ with tab_prog:
         except Exception: pass
 
 # ==========================================
-# 🌟 全新模块：第七页 向量计算
+# 第七页：向量计算
 # ==========================================
 with tab_vector:
     st.markdown("### 📐 空间向量计算器")
-    st.info("💡 **规则：** 直接修改下方文本框的内容，点击按钮即可利用最新数据计算。支持代数 (如 2*x, y)。")
     
-    # 这两个框直接作为全局数据源
     vc1, vc2 = st.columns(2)
     vecA_str = vc1.text_input("向量 $\\vec{A}$:", value="1, 2, 3")
     vecB_str = vc2.text_input("向量 $\\vec{B}$:", value="4, 5, 6")
     
     def parse_vec(v_str):
-        # 将用户输入的字符串转换成 sympy 矩阵向量
         return sp.Matrix([sp.sympify(e) for e in v_str.split(',')])
 
     vb1, vb2, vb3, vb4 = st.columns(4)
@@ -362,7 +422,7 @@ with tab_vector:
         except: st.error("格式错误！")
 
 # ==========================================
-# 🌟 全新模块：第八页 旋转面方程 (带 3D 渲染)
+# 第八页：旋转面方程
 # ==========================================
 with tab_surface:
     st.markdown("### 🏺 旋转曲面生成器")
@@ -376,14 +436,12 @@ with tab_surface:
     plot_start = sc3.text_input("参数起点 (如 -2):", value="-2")
     plot_end = sc4.text_input("参数终点 (如 2):", value="2")
     
-    if st.button("🏺 生成方程 & 3D渲染"):
+    if st.button("✨ 自动推导 & 3D渲染"):
         try:
             f = sp.sympify(curve_str)
-            # 动态检测变量
             free_vars = f.free_symbols
             var = list(free_vars)[0] if free_vars else x
             
-            # 数学公式推导
             if "x" in axis:
                 surface_eq = sp.Eq(y**2 + z**2, f**2)
                 st.success(f"假设原曲线为 $y = {sp.latex(f)}$，绕 $x$ 轴旋转：")
@@ -392,7 +450,6 @@ with tab_surface:
                 st.success(f"假设原曲线为 $x = {sp.latex(f)}$，绕 $y$ 轴旋转：")
             st.latex(sp.latex(surface_eq))
             
-            # 3D 图形渲染
             fig = plt.figure(figsize=(8, 6))
             ax = fig.add_subplot(111, projection='3d')
             if dark_mode:
@@ -403,9 +460,8 @@ with tab_surface:
                 cmap_color = 'cool'
             else:
                 plt.style.use('default')
-                cmap_color = 'viridis'
+                cmap_color = 'plasma'
 
-            # 参数化构建 3D 矩阵
             v_vals = np.linspace(float(sp.sympify(plot_start).evalf()), float(sp.sympify(plot_end).evalf()), 100)
             theta_vals = np.linspace(0, 2 * np.pi, 100)
             V, Theta = np.meshgrid(v_vals, theta_vals)
@@ -416,13 +472,9 @@ with tab_surface:
                 R = np.full_like(V, R)
 
             if "x" in axis:
-                X = V
-                Y = R * np.cos(Theta)
-                Z = R * np.sin(Theta)
+                X, Y, Z = V, R * np.cos(Theta), R * np.sin(Theta)
             else:
-                X = R * np.cos(Theta)
-                Y = V
-                Z = R * np.sin(Theta)
+                X, Y, Z = R * np.cos(Theta), V, R * np.sin(Theta)
 
             ax.plot_surface(X, Y, Z, cmap=cmap_color, alpha=0.9, edgecolor='none')
             ax.set_xlabel('X Axis')
@@ -431,14 +483,13 @@ with tab_surface:
             st.pyplot(fig)
             
         except Exception as e:
-            st.error("解析失败！请检查数学表达式或渲染范围。")
+            st.error("解析失败！请检查数学表达式。")
 
 # ==========================================
-# 🌟 全新模块：第九页 曲线积分
+# 第九页：曲线积分
 # ==========================================
 with tab_line:
     st.markdown("### 〰️ 第二类曲线积分 (力场做功)")
-    st.info("计算 $\\int_L P(x,y)dx + Q(x,y)dy$，使用参数方程 $x=x(t), y=y(t)$")
     
     lc1, lc2 = st.columns(2)
     P_str = lc1.text_input("向量场 $P(x, y)$:", value="y")
@@ -452,7 +503,7 @@ with tab_line:
     t_start_str = lc5.text_input("参数 $t$ 的起点:", value="0")
     t_end_str = lc6.text_input("参数 $t$ 的终点:", value="1")
     
-    if st.button("〰️ 一键计算做功积分"):
+    if st.button("🚀 一键计算做功积分"):
         try:
             P = sp.sympify(P_str)
             Q = sp.sympify(Q_str)
