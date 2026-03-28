@@ -106,7 +106,7 @@ def plot_graph(func, fill_a=None, fill_b=None):
     st.pyplot(fig) 
 
 # ==========================================
-# 第一页：微积分 (加入过程)
+# 第一页：微积分 
 # ==========================================
 with tab_math:
     with st.expander("🎹 点击展开科学计算快捷键盘"):
@@ -136,7 +136,6 @@ with tab_math:
 
     col1, col2, col3, col4 = st.columns(4)
 
-    # 🌟 恢复的基础计算功能，并加装了详细的代数变形过程
     if col1.button("🟰 普通计算"):
         try:
             expr = sp.sympify(expr_str)
@@ -147,21 +146,14 @@ with tab_math:
             with st.expander("👀 查看计算/化简过程", expanded=True):
                 st.markdown("**1. 原始解析表达式:**")
                 st.latex(sp.latex(expr))
-                
-                # 如果展开后和原来不一样，展示展开步骤
                 if expr != expanded and expanded != simplified:
                     st.markdown("**2. 展开多项式:**")
                     st.latex(sp.latex(expanded))
-                    
-                # 如果化简后和原来不一样，展示化简步骤
                 if expr != simplified:
                     st.markdown("**3. 最简代数形式:**")
                     st.latex(sp.latex(simplified))
-                    
                 st.markdown("**4. 最终答案:**")
                 st.latex(f"= {sp.latex(simplified)}")
-                
-            # 如果结果是纯数字，给出小数
             if simplified.is_number and not simplified.has(sp.oo):
                 st.info(f"**近似数值:** `{simplified.evalf():.6f}`")
         except: 
@@ -214,9 +206,10 @@ with tab_math:
             st.info(f"**近似数值:** `{result.evalf():.4f}`")
             plot_graph(func, float(a.evalf()), float(b.evalf()))
         except: st.error("计算失败！")
-# ------------------------------------------
-# 第二页：解方程 (已加装代数变换过程)
-# ------------------------------------------
+
+# ==========================================
+# 第二页：解方程
+# ==========================================
 with tab_eq:
     st.markdown("### 🔍 智能方程求解器")
     eq_str = st.text_input("请输入方程 (用逗号隔开):", value="x**2 - 5*x + 6 = 0")
@@ -241,18 +234,15 @@ with tab_eq:
             if not solution: st.warning("⚠️ 无解或格式有误。")
             else:
                 st.success("🎉 求解成功！")
-                
-                # 🌟 步骤展开面板
                 with st.expander("👀 查看方程推导与变形过程", expanded=True):
                     st.markdown("**第一步：提取原始方程**")
                     for eq in eq_list:
                         st.latex(sp.latex(eq) if isinstance(eq, sp.Eq) else f"{sp.latex(eq)} = 0")
                         
-                    st.markdown("**第二步：移项化为标准形式 ($f(x)=0$)**")
+                    st.markdown("**第二步：化为标准形式 ($f(x)=0$)**")
                     for sf in standard_forms:
                         st.latex(f"{sp.latex(sf)} = 0")
                     
-                    # 尝试因式分解 (仅针对单变量有效)
                     if len(standard_forms) == 1 and len(standard_forms[0].free_symbols) == 1:
                         try:
                             factored = sp.factor(standard_forms[0])
@@ -261,7 +251,7 @@ with tab_eq:
                                 st.latex(f"{sp.latex(factored)} = 0")
                         except: pass
                         
-                    st.markdown("**第四步：得出最终解集**")
+                    st.markdown("**最终解集:**")
                     for idx, sol in enumerate(solution):
                         sol_latex = ", \\quad ".join([f"{sp.latex(var)} = {sp.latex(val)}" for var, val in sol.items()])
                         st.latex(f"\\text{{解 }} {idx + 1}: \\quad {sol_latex}")
@@ -298,7 +288,7 @@ with tab_sum:
         except: st.error("计算失败！")
 
 # ==========================================
-# 第四页：多重积分
+# 第四页：多重积分 (🌟 震撼降维推导过程)
 # ==========================================
 with tab_multi:
     st.markdown("### 🌀 空间多重积分求解")
@@ -319,6 +309,34 @@ with tab_multi:
         c_z1, c_z2 = st.columns(2)
         zl_str, zu_str = c_z1.text_input("z 下限:", value="0"), c_z2.text_input("z 上限:", value="x + y")
 
+    def plot_3d_integral(func_expr, xl_val, xu_val, yl_func, yu_func):
+        fig = plt.figure(figsize=(8, 6))
+        ax = fig.add_subplot(111, projection='3d')
+        if dark_mode:
+            plt.style.use('dark_background')
+            fig.patch.set_alpha(0.0)
+            ax.patch.set_alpha(0.0)
+            ax.xaxis.set_pane_color((0,0,0,0)); ax.yaxis.set_pane_color((0,0,0,0)); ax.zaxis.set_pane_color((0,0,0,0))
+            cmap_hl = 'cool'
+        else:
+            plt.style.use('default')
+            cmap_hl = 'magma'
+
+        try:
+            x_n = np.linspace(float(xl_val.evalf()), float(xu_val.evalf()), 40)
+            f_yl, f_yu = sp.lambdify(x, yl_func, 'numpy'), sp.lambdify(x, yu_func, 'numpy')
+            y_min_arr, y_max_arr = f_yl(x_n), f_yu(x_n)
+            if isinstance(y_min_arr, (int, float)): y_min_arr = np.full_like(x_n, y_min_arr)
+            if isinstance(y_max_arr, (int, float)): y_max_arr = np.full_like(x_n, y_max_arr)
+            y_n = np.linspace(np.min(y_min_arr), np.max(y_max_arr), 40)
+            X, Y = np.meshgrid(x_n, y_n)
+            f_np = sp.lambdify((x, y), func_expr, 'numpy')
+            Z = f_np(X, Y)
+            if isinstance(Z, (int, float)): Z = np.full_like(X, Z)
+            ax.plot_surface(X, Y, Z, alpha=0.9, cmap=cmap_hl, edgecolor='none')
+            st.pyplot(fig)
+        except: st.warning("⚠️ 3D 渲染跳过 (边界过于复杂)")
+
     if st.button("🌀 发动多重积分魔法 "):
         try:
             f = sp.sympify(multi_expr)
@@ -327,16 +345,39 @@ with tab_multi:
             
             if is_triple:
                 zl, zu = sp.sympify(zl_str), sp.sympify(zu_str)
-                result = sp.integrate(f, (z, zl, zu), (y, yl, yu), (x, xl, xu))
+                # 分步计算，用于展示过程
+                step1 = sp.integrate(f, (z, zl, zu))
+                step2 = sp.integrate(step1, (y, yl, yu))
+                result = sp.integrate(step2, (x, xl, xu))
+                
                 st.success("🎉 三重积分计算成功！")
-                st.latex(f"\\iiint ({sp.latex(f)}) \\, dz \\, dy \\, dx = {sp.latex(result)}")
+                with st.expander("👀 查看三重积分『剥洋葱』降维过程", expanded=True):
+                    st.markdown("**1. 原始三重积分:**")
+                    st.latex(f"\\int_{{{sp.latex(xl)}}}^{{{sp.latex(xu)}}} dx \\int_{{{sp.latex(yl)}}}^{{{sp.latex(yu)}}} dy \\int_{{{sp.latex(zl)}}}^{{{sp.latex(zu)}}} \\left( {sp.latex(f)} \\right) dz")
+                    st.markdown("**2. 对最内层 $z$ 积分并代入上下限 (降为二重积分):**")
+                    st.latex(f"\\int_{{{sp.latex(xl)}}}^{{{sp.latex(xu)}}} dx \\int_{{{sp.latex(yl)}}}^{{{sp.latex(yu)}}} \\left( {sp.latex(step1)} \\right) dy")
+                    st.markdown("**3. 对中间层 $y$ 积分并代入上下限 (降为一重定积分):**")
+                    st.latex(f"\\int_{{{sp.latex(xl)}}}^{{{sp.latex(xu)}}} \\left( {sp.latex(step2)} \\right) dx")
+                    st.markdown("**4. 对最外层 $x$ 积分得出最终结果:**")
+                    st.latex(f"= {sp.latex(result)}")
             else:
-                result = sp.integrate(f, (y, yl, yu), (x, xl, xu))
+                step1 = sp.integrate(f, (y, yl, yu))
+                result = sp.integrate(step1, (x, xl, xu))
+                
                 st.success("🎉 二重积分计算成功！")
-                st.latex(f"\\iint ({sp.latex(f)}) \\, dy \\, dx = {sp.latex(result)}")
+                with st.expander("👀 查看二重积分『剥洋葱』降维过程", expanded=True):
+                    st.markdown("**1. 原始二重积分:**")
+                    st.latex(f"\\int_{{{sp.latex(xl)}}}^{{{sp.latex(xu)}}} dx \\int_{{{sp.latex(yl)}}}^{{{sp.latex(yu)}}} \\left( {sp.latex(f)} \\right) dy")
+                    st.markdown("**2. 对内层 $y$ 积分并代入上下限 (降为一重定积分):**")
+                    st.latex(f"\\int_{{{sp.latex(xl)}}}^{{{sp.latex(xu)}}} \\left( {sp.latex(step1)} \\right) dx")
+                    st.markdown("**3. 对外层 $x$ 积分得出最终结果:**")
+                    st.latex(f"= {sp.latex(result)}")
+                plot_3d_integral(f, xl, xu, yl, yu)
+                
             if result.is_number and not result.has(sp.oo): 
                 st.info(f"**近似数值:** `{result.evalf():.6f}`")
         except: st.error("计算失败！")
+
 # ==========================================
 # 第五页：线性代数与矩阵
 # ==========================================
@@ -362,7 +403,7 @@ with tab_linalg:
         try:
             A, B = parse_matrix(mat_A_str), parse_matrix(mat_B_str)
             st.latex(f"{sp.latex(A)} + {sp.latex(B)} = {sp.latex(A + B)}")
-        except: st.error("❌ 计算失败！")
+        except Exception: st.error("❌ 计算失败！")
 
     if btn2.button("A × B (相乘)"):
         try:
@@ -377,7 +418,7 @@ with tab_linalg:
         try:
             A = parse_matrix(mat_A_str)
             st.latex(f"\\det({sp.latex(A)}) = {sp.latex(A.det())}")
-        except: st.error("❌ 计算失败！")
+        except Exception: st.error("❌ 计算失败！")
 
     if btn4.button("A⁻¹ (求逆)"):
         try:
@@ -397,7 +438,7 @@ with tab_linalg:
         try:
             A = parse_matrix(mat_A_str)
             st.latex(f"{sp.latex(A)}^T = {sp.latex(A.T)}")
-        except: st.error("❌ 解析失败！")
+        except Exception: st.error("❌ 解析失败！")
 
 # ==========================================
 # 第六页：程序员(进制)
@@ -415,7 +456,7 @@ with tab_prog:
                 c2.metric(label="二进制 (BIN)", value=bin(val))
                 c3.metric(label="八进制 (OCT)", value=oct(val))
                 c4.metric(label="十六进制 (HEX)", value=hex(val))
-        except: pass
+        except Exception: pass
 
 # ==========================================
 # 第七页：向量计算
@@ -526,7 +567,7 @@ with tab_surface:
             ax.set_zlabel('Z Axis')
             st.pyplot(fig)
             
-        except:
+        except Exception as e:
             st.error("解析失败！请检查数学表达式。")
 
 # ==========================================
