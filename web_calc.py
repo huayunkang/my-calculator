@@ -127,7 +127,12 @@ with tab_math:
     upper_limit_str = col_b.text_input("积分上限 b:", value="2")
 
     col1, col2, col3, col4 = st.columns(4)
-
+if col1.button("🟰 计算"):
+        try:
+            result = sp.sympify(expr_str)
+            st.success("计算成功！")
+            st.latex(f"= {sp.latex(result)}") 
+        except: st.error("公式格式有误！")
     if col2.button("📈 求导数"):
         try:
             func = sp.sympify(expr_str)
