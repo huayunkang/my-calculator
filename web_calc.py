@@ -1,26 +1,22 @@
-import streamlit.components.v1 as components
 import streamlit as st
 import sympy as sp
 import numpy as np
 import matplotlib.pyplot as plt
+import streamlit.components.v1 as components  # 🌟 召唤小人必须的库
 
-st.set_page_config(page_title="全能微积分计算器", page_icon="🧮", layout="centered")
+st.set_page_config(page_title="全能微积分计算器 Ultra", page_icon="🧮", layout="centered")
 
 # ==========================================
-# 🧚‍♀️ 萌物召唤模块：全屏可拖拽的看板小人
+# 🧚‍♀️ 萌物召唤模块：全屏可拖拽的看板小猫
 # ==========================================
 def summon_mascot():
-    # 这是一段前端黑魔法：跨域把一个 div 挂载到父级页面上，并赋予它拖拽生命
     mascot_code = """
     <script>
     const parentDoc = window.parent.document;
-    
-    // 检查是不是已经召唤过小人了（防止每次点击按钮都跑出来一个新的）
     if (!parentDoc.getElementById("cute-mascot")) {
         const mascot = parentDoc.createElement("div");
         mascot.id = "cute-mascot";
         
-        // CSS 样式：固定在右下角、最上层、鼠标变成小手
         mascot.style.position = "fixed";
         mascot.style.bottom = "30px";
         mascot.style.right = "30px";
@@ -28,19 +24,16 @@ def summon_mascot():
         mascot.style.cursor = "grab";
         mascot.style.userSelect = "none";
         
-        // 🌟 小人的图片地址 (你可以换成任何你喜欢的 GIF/PNG 链接)
-        // 这里我先用了一个敲电脑的萌萌猫咪 GIF 作为演示
+        // 键盘猫 GIF
         mascot.innerHTML = '<img src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif" width="120px" style="pointer-events: none; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 3px solid #FF4B2B;"/>';
         
         parentDoc.body.appendChild(mascot);
 
-        // 🖱️ 拖拽物理引擎
         let isDragging = false;
         let offsetX, offsetY;
 
         mascot.onmousedown = function(e) {
             isDragging = true;
-            // 记录鼠标点下去时，跟小人左上角的偏差
             offsetX = e.clientX - mascot.getBoundingClientRect().left;
             offsetY = e.clientY - mascot.getBoundingClientRect().top;
             mascot.style.cursor = "grabbing";
@@ -48,10 +41,8 @@ def summon_mascot():
 
         parentDoc.onmousemove = function(e) {
             if (isDragging) {
-                // 跟着鼠标移动！
                 mascot.style.left = (e.clientX - offsetX) + "px";
                 mascot.style.top = (e.clientY - offsetY) + "px";
-                // 取消原本绑死在右下角的定位
                 mascot.style.bottom = "auto";
                 mascot.style.right = "auto";
             }
@@ -64,18 +55,43 @@ def summon_mascot():
     }
     </script>
     """
-    # 偷偷执行这段脚本，不占据原来的页面空间
     components.html(mascot_code, height=0, width=0)
 
-# 启动！召唤小人！
+# 启动！把猫主子请出来！
 summon_mascot()
 
 # ==========================================
-# 🎨 核心视觉升级：前端 CSS 黑魔法注入
+# 🎨 核心视觉升级：唯美风景背景 + 毛玻璃
 # ==========================================
-custom_css = """
+day_bg_url = "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=2070" 
+night_bg_url = "https://images.unsplash.com/photo-1500417148159-68083bd7333a?q=80&w=2070" 
+
+custom_style = f"""
 <style>
-    .title-text {
+    .stApp {{
+        background-image: url("{day_bg_url}");
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        transition: background-image 0.5s ease-in-out;
+    }}
+    .stApp::before {{
+        content: "";
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background-color: rgba(255, 255, 255, 0.3);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+        z-index: -1;
+    }}
+    .block-container {{
+        background-color: rgba(255, 255, 255, 0.75);
+        padding: 40px !important;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        backdrop-filter: blur(10px);
+    }}
+    .title-text {{
         background: -webkit-linear-gradient(45deg, #FF416C, #FF4B2B, #7b2ff7, #2f9eff);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
@@ -84,42 +100,42 @@ custom_css = """
         text-align: center;
         margin-bottom: 0px;
         padding-bottom: 10px;
-    }
-    .subtitle-text {
-        text-align: center;
-        color: #888;
-        font-size: 16px;
-        letter-spacing: 2px;
-        margin-bottom: 30px;
-    }
-    div.stButton > button {
-        border-radius: 12px;
-        border: none;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        font-weight: 600;
-    }
-    div.stButton > button:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 15px rgba(255, 75, 43, 0.3);
-        border: 1px solid #FF4B2B;
-    }
-    div.stTextInput > div > div > input, div.stTextArea > div > div > textarea {
-        border-radius: 10px;
-    }
-    button[data-baseweb="tab"] {
-        font-size: 16px;
-        font-weight: bold;
-        border-radius: 8px 8px 0 0;
-    }
+        text-shadow: 0 2px 10px rgba(255,75,43,0.2);
+    }}
+    .subtitle-text {{
+        text-align: center; color: #555; font-size: 16px; letter-spacing: 2px; margin-bottom: 30px;
+    }}
+    div.stButton > button {{
+        border-radius: 12px; border: none; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); font-weight: 600;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;
+    }}
+    div.stButton > button:hover {{
+        transform: translateY(-3px); box-shadow: 0 8px 20px rgba(118, 75, 162, 0.4);
+    }}
+    div.stTextInput > div > div > input, div.stTextArea > div > div > textarea {{
+        border-radius: 10px; background-color: rgba(255, 255, 255, 0.8);
+    }}
+    button[data-baseweb="tab"] {{ font-size: 16px; font-weight: bold; }}
+
+    [data-theme="dark"] .stApp {{ background-image: url("{night_bg_url}"); }}
+    [data-theme="dark"] .stApp::before {{ background-color: rgba(0, 0, 0, 0.5); }}
+    [data-theme="dark"] .block-container {{ background-color: rgba(0, 0, 0, 0.6); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }}
+    [data-theme="dark"] div.stTextInput > div > div > input, [data-theme="dark"] div.stTextArea > div > div > textarea {{
+        background-color: rgba(50, 50, 50, 0.7); color: white;
+    }}
+    [data-theme="dark"] .subtitle-text {{ color: #aaa; }}
 </style>
 """
-st.markdown(custom_css, unsafe_allow_html=True)
+st.markdown(custom_style, unsafe_allow_html=True)
 
+# ==========================================
+# 页面内容区
+# ==========================================
 st.markdown('<div class="title-text">🧮 Ultra Max 终极计算器</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle-text">带详细解题步骤的保姆级神器</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle-text">保姆级微积分神器 • 风景吸猫版</div>', unsafe_allow_html=True)
 
-dark_mode = st.toggle("🌙 开启暗黑图表模式 (推荐)")
+dark_mode_plots = st.toggle("🌙 开启图表暗黑模式风格")
 
 if "math_expr" not in st.session_state:
     st.session_state.math_expr = "x**2 - 5*x + 6"
@@ -133,9 +149,8 @@ tab_math, tab_eq, tab_sum, tab_multi, tab_linalg, tab_prog, tab_vector, tab_surf
     ["📚 微积分", "🔍 解方程", "➕ 级数", "🌀 多重积分", "🧮 线性代数", "💻 程序员", "📐 向量", "🏺 旋转面", "〰️ 曲线积分"]
 )
 
-# --- 画图通用函数 ---
 def plot_graph(func, fill_a=None, fill_b=None):
-    if dark_mode:
+    if dark_mode_plots:
         plt.style.use('dark_background')
         line_color = '#00ffcc' 
     else:
@@ -170,9 +185,9 @@ def plot_graph(func, fill_a=None, fill_b=None):
     ax.grid(True, linestyle='--', alpha=0.3)
     st.pyplot(fig) 
 
-# ==========================================
+# ------------------------------------------
 # 第一页：微积分 
-# ==========================================
+# ------------------------------------------
 with tab_math:
     with st.expander("🎹 点击展开科学计算快捷键盘"):
         b1, b2, b3, b4 = st.columns(4)
@@ -180,13 +195,11 @@ with tab_math:
         b2.button("cos(", on_click=add_to_expr, args=("cos(",))
         b3.button("tan(", on_click=add_to_expr, args=("tan(",))
         b4.button("pi", on_click=add_to_expr, args=("pi",))
-        
         b5, b6, b7, b8 = st.columns(4)
         b5.button("log(", on_click=add_to_expr, args=("log(",))
         b6.button("exp(", on_click=add_to_expr, args=("exp(",))
         b7.button("sqrt(", on_click=add_to_expr, args=("sqrt(",))
         b8.button("E", on_click=add_to_expr, args=("E",))
-
         b9, b10, b11, b12 = st.columns(4)
         b9.button("x", on_click=add_to_expr, args=("x",))
         b10.button("**", on_click=add_to_expr, args=("**",))
@@ -206,7 +219,6 @@ with tab_math:
             expr = sp.sympify(expr_str)
             simplified = sp.simplify(expr)
             expanded = sp.expand(expr)
-            
             st.success("计算成功！")
             with st.expander("👀 查看计算/化简过程", expanded=True):
                 st.markdown("**1. 原始解析表达式:**")
@@ -221,8 +233,7 @@ with tab_math:
                 st.latex(f"= {sp.latex(simplified)}")
             if simplified.is_number and not simplified.has(sp.oo):
                 st.info(f"**近似数值:** `{simplified.evalf():.6f}`")
-        except: 
-            st.error("公式格式有误！")
+        except: st.error("公式格式有误！")
 
     if col2.button("📈 求导数"):
         try:
@@ -247,7 +258,7 @@ with tab_math:
             with st.expander("👀 查看积分详细过程", expanded=True):
                 st.markdown("**1. 构建不定积分式:**")
                 st.latex(f"\\int \\left( {sp.latex(func)} \\right) dx")
-                st.markdown("**2. 求解反导数 (注意常数 C):**")
+                st.markdown("**2. 求解反导数:**")
                 st.latex(f"= {sp.latex(result)} + C")
             plot_graph(result)
         except: st.error("不定积分失败！")
@@ -272,30 +283,27 @@ with tab_math:
             plot_graph(func, float(a.evalf()), float(b.evalf()))
         except: st.error("计算失败！")
 
-# ==========================================
+# ------------------------------------------
 # 第二页：解方程
-# ==========================================
+# ------------------------------------------
 with tab_eq:
     st.markdown("### 🔍 智能方程求解器")
     eq_str = st.text_input("请输入方程 (用逗号隔开):", value="x**2 - 5*x + 6 = 0")
     if st.button("🚀 解方程并查看过程"):
         try:
-            eq_list = []
-            standard_forms = []
+            eq_list, standard_forms = [], []
             for eq in eq_str.split(','):
                 eq = eq.strip()
                 if not eq: continue
                 if '=' in eq:
                     left, right = eq.split('=')
-                    eq_obj = sp.Eq(sp.sympify(left), sp.sympify(right))
-                    eq_list.append(eq_obj)
+                    eq_list.append(sp.Eq(sp.sympify(left), sp.sympify(right)))
                     standard_forms.append(sp.sympify(left) - sp.sympify(right))
                 else:
                     eq_list.append(sp.sympify(eq))
                     standard_forms.append(sp.sympify(eq))
                     
             solution = sp.solve(eq_list, dict=True)
-            
             if not solution: st.warning("⚠️ 无解或格式有误。")
             else:
                 st.success("🎉 求解成功！")
@@ -303,11 +311,9 @@ with tab_eq:
                     st.markdown("**第一步：提取原始方程**")
                     for eq in eq_list:
                         st.latex(sp.latex(eq) if isinstance(eq, sp.Eq) else f"{sp.latex(eq)} = 0")
-                        
                     st.markdown("**第二步：化为标准形式 ($f(x)=0$)**")
                     for sf in standard_forms:
                         st.latex(f"{sp.latex(sf)} = 0")
-                    
                     if len(standard_forms) == 1 and len(standard_forms[0].free_symbols) == 1:
                         try:
                             factored = sp.factor(standard_forms[0])
@@ -315,16 +321,15 @@ with tab_eq:
                                 st.markdown("**第三步：多项式因式分解**")
                                 st.latex(f"{sp.latex(factored)} = 0")
                         except: pass
-                        
                     st.markdown("**最终解集:**")
                     for idx, sol in enumerate(solution):
                         sol_latex = ", \\quad ".join([f"{sp.latex(var)} = {sp.latex(val)}" for var, val in sol.items()])
                         st.latex(f"\\text{{解 }} {idx + 1}: \\quad {sol_latex}")
         except: st.error("解析失败！")
 
-# ==========================================
+# ------------------------------------------
 # 第三页：级数求和
-# ==========================================
+# ------------------------------------------
 with tab_sum:
     st.markdown("### ➕ 西格玛 (Σ) 求和神器")
     sum_expr_str = st.text_input("求和通项公式 (如: n**2):", value="n")
@@ -340,21 +345,19 @@ with tab_sum:
             lower, upper = sp.sympify(sum_lower_str), sp.sympify(sum_upper_str)
             sum_obj = sp.Sum(func_sum, (var, lower, upper))
             result = sum_obj.doit()
-            
             st.success("🎉 求和计算成功！")
             with st.expander("👀 查看级数求和展示", expanded=True):
                 st.markdown("**1. 级数表达式:**")
                 st.latex(sp.latex(sum_obj))
                 st.markdown("**2. 展开求和结果:**")
                 st.latex(f"= {sp.latex(result)}")
-            
             if result.is_number and not result.has(sp.oo):
                 st.info(f"**近似数值:** `{result.evalf():.6f}`")
         except: st.error("计算失败！")
 
-# ==========================================
-# 第四页：多重积分 (🌟 震撼降维推导过程)
-# ==========================================
+# ------------------------------------------
+# 第四页：多重积分
+# ------------------------------------------
 with tab_multi:
     st.markdown("### 🌀 空间多重积分求解")
     int_type = st.radio("请选择积分维度:", ["∬ 二重积分", "∭ 三重积分"], horizontal=True)
@@ -377,7 +380,7 @@ with tab_multi:
     def plot_3d_integral(func_expr, xl_val, xu_val, yl_func, yu_func):
         fig = plt.figure(figsize=(8, 6))
         ax = fig.add_subplot(111, projection='3d')
-        if dark_mode:
+        if dark_mode_plots:
             plt.style.use('dark_background')
             fig.patch.set_alpha(0.0)
             ax.patch.set_alpha(0.0)
@@ -386,7 +389,6 @@ with tab_multi:
         else:
             plt.style.use('default')
             cmap_hl = 'magma'
-
         try:
             x_n = np.linspace(float(xl_val.evalf()), float(xu_val.evalf()), 40)
             f_yl, f_yu = sp.lambdify(x, yl_func, 'numpy'), sp.lambdify(x, yu_func, 'numpy')
@@ -410,42 +412,38 @@ with tab_multi:
             
             if is_triple:
                 zl, zu = sp.sympify(zl_str), sp.sympify(zu_str)
-                # 分步计算，用于展示过程
                 step1 = sp.integrate(f, (z, zl, zu))
                 step2 = sp.integrate(step1, (y, yl, yu))
                 result = sp.integrate(step2, (x, xl, xu))
-                
                 st.success("🎉 三重积分计算成功！")
                 with st.expander("👀 查看三重积分『剥洋葱』降维过程", expanded=True):
                     st.markdown("**1. 原始三重积分:**")
                     st.latex(f"\\int_{{{sp.latex(xl)}}}^{{{sp.latex(xu)}}} dx \\int_{{{sp.latex(yl)}}}^{{{sp.latex(yu)}}} dy \\int_{{{sp.latex(zl)}}}^{{{sp.latex(zu)}}} \\left( {sp.latex(f)} \\right) dz")
-                    st.markdown("**2. 对最内层 $z$ 积分并代入上下限 (降为二重积分):**")
+                    st.markdown("**2. 对最内层 $z$ 积分并代入上下限:**")
                     st.latex(f"\\int_{{{sp.latex(xl)}}}^{{{sp.latex(xu)}}} dx \\int_{{{sp.latex(yl)}}}^{{{sp.latex(yu)}}} \\left( {sp.latex(step1)} \\right) dy")
-                    st.markdown("**3. 对中间层 $y$ 积分并代入上下限 (降为一重定积分):**")
+                    st.markdown("**3. 对中间层 $y$ 积分并代入上下限:**")
                     st.latex(f"\\int_{{{sp.latex(xl)}}}^{{{sp.latex(xu)}}} \\left( {sp.latex(step2)} \\right) dx")
                     st.markdown("**4. 对最外层 $x$ 积分得出最终结果:**")
                     st.latex(f"= {sp.latex(result)}")
             else:
                 step1 = sp.integrate(f, (y, yl, yu))
                 result = sp.integrate(step1, (x, xl, xu))
-                
                 st.success("🎉 二重积分计算成功！")
                 with st.expander("👀 查看二重积分『剥洋葱』降维过程", expanded=True):
                     st.markdown("**1. 原始二重积分:**")
                     st.latex(f"\\int_{{{sp.latex(xl)}}}^{{{sp.latex(xu)}}} dx \\int_{{{sp.latex(yl)}}}^{{{sp.latex(yu)}}} \\left( {sp.latex(f)} \\right) dy")
-                    st.markdown("**2. 对内层 $y$ 积分并代入上下限 (降为一重定积分):**")
+                    st.markdown("**2. 对内层 $y$ 积分并代入上下限:**")
                     st.latex(f"\\int_{{{sp.latex(xl)}}}^{{{sp.latex(xu)}}} \\left( {sp.latex(step1)} \\right) dx")
                     st.markdown("**3. 对外层 $x$ 积分得出最终结果:**")
                     st.latex(f"= {sp.latex(result)}")
                 plot_3d_integral(f, xl, xu, yl, yu)
-                
             if result.is_number and not result.has(sp.oo): 
                 st.info(f"**近似数值:** `{result.evalf():.6f}`")
         except: st.error("计算失败！")
 
-# ==========================================
+# ------------------------------------------
 # 第五页：线性代数与矩阵
-# ==========================================
+# ------------------------------------------
 with tab_linalg:
     st.markdown("### 🧮 智能矩阵运算中心")
     col_m1, col_m2 = st.columns(2)
@@ -493,7 +491,7 @@ with tab_linalg:
             with st.expander("👀 查看求逆过程与行列式", expanded=True):
                 st.markdown("**1. 原矩阵:**")
                 st.latex(f"A = {sp.latex(A)}")
-                st.markdown("**2. 计算行列式 $|A|$ (若为0则不可逆):**")
+                st.markdown("**2. 计算行列式 $|A|$:**")
                 st.latex(f"|A| = {sp.latex(A.det())}")
                 st.markdown("**3. 逆矩阵 $A^{-1}$:**")
                 st.latex(f"A^{{-1}} = {sp.latex(result)}")
@@ -505,9 +503,9 @@ with tab_linalg:
             st.latex(f"{sp.latex(A)}^T = {sp.latex(A.T)}")
         except Exception: st.error("❌ 解析失败！")
 
-# ==========================================
+# ------------------------------------------
 # 第六页：程序员(进制)
-# ==========================================
+# ------------------------------------------
 with tab_prog:
     st.markdown("### 🔢 实时进制转换")
     prog_expr = st.text_input("请输入整数或算式:", value="255", key="prog_input")
@@ -523,12 +521,11 @@ with tab_prog:
                 c4.metric(label="十六进制 (HEX)", value=hex(val))
         except Exception: pass
 
-# ==========================================
+# ------------------------------------------
 # 第七页：向量计算
-# ==========================================
+# ------------------------------------------
 with tab_vector:
     st.markdown("### 📐 空间向量计算器")
-    
     vc1, vc2 = st.columns(2)
     vecA_str = vc1.text_input("向量 $\\vec{A}$:", value="1, 2, 3")
     vecB_str = vc2.text_input("向量 $\\vec{B}$:", value="4, 5, 6")
@@ -556,8 +553,7 @@ with tab_vector:
     if vb3.button("外积 (叉乘)"):
         try:
             A, B = parse_vec(vecA_str), parse_vec(vecB_str)
-            if len(A) != 3 or len(B) != 3:
-                st.warning("⚠️ 叉乘主要适用于三维向量！")
+            if len(A) != 3 or len(B) != 3: st.warning("⚠️ 叉乘主要适用于三维向量！")
             else:
                 result = A.cross(B)
                 st.success("✅ 叉乘计算完成")
@@ -571,12 +567,11 @@ with tab_vector:
             st.latex(f"|\\vec{{A}}| = {sp.latex(A.norm())}")
         except: st.error("格式错误！")
 
-# ==========================================
+# ------------------------------------------
 # 第八页：旋转面方程
-# ==========================================
+# ------------------------------------------
 with tab_surface:
     st.markdown("### 🏺 旋转曲面生成器")
-    
     sc1, sc2 = st.columns([2, 1])
     curve_str = sc1.text_input("输入平面曲线方程 (如表示 $y=x^2$，输入 $x**2$):", value="x**2")
     axis = sc2.radio("绕哪个轴旋转?", ["x轴", "y轴"], horizontal=True)
@@ -602,7 +597,7 @@ with tab_surface:
             
             fig = plt.figure(figsize=(8, 6))
             ax = fig.add_subplot(111, projection='3d')
-            if dark_mode:
+            if dark_mode_plots:
                 plt.style.use('dark_background')
                 fig.patch.set_alpha(0.0)
                 ax.patch.set_alpha(0.0)
@@ -618,37 +613,28 @@ with tab_surface:
             
             f_lambdify = sp.lambdify(var, f, 'numpy')
             R = f_lambdify(V)
-            if isinstance(R, (int, float)): 
-                R = np.full_like(V, R)
+            if isinstance(R, (int, float)): R = np.full_like(V, R)
 
-            if "x" in axis:
-                X, Y, Z = V, R * np.cos(Theta), R * np.sin(Theta)
-            else:
-                X, Y, Z = R * np.cos(Theta), V, R * np.sin(Theta)
+            if "x" in axis: X, Y, Z = V, R * np.cos(Theta), R * np.sin(Theta)
+            else: X, Y, Z = R * np.cos(Theta), V, R * np.sin(Theta)
 
             ax.plot_surface(X, Y, Z, cmap=cmap_color, alpha=0.9, edgecolor='none')
-            ax.set_xlabel('X Axis')
-            ax.set_ylabel('Y Axis')
-            ax.set_zlabel('Z Axis')
+            ax.set_xlabel('X Axis'); ax.set_ylabel('Y Axis'); ax.set_zlabel('Z Axis')
             st.pyplot(fig)
-            
         except Exception as e:
             st.error("解析失败！请检查数学表达式。")
 
-# ==========================================
+# ------------------------------------------
 # 第九页：曲线积分
-# ==========================================
+# ------------------------------------------
 with tab_line:
     st.markdown("### 〰️ 第二类曲线积分 (力场做功)")
-    
     lc1, lc2 = st.columns(2)
     P_str = lc1.text_input("向量场 $P(x, y)$:", value="y")
     Q_str = lc2.text_input("向量场 $Q(x, y)$:", value="x**2")
-    
     lc3, lc4 = st.columns(2)
     xt_str = lc3.text_input("曲线参数 $x(t)$:", value="t")
     yt_str = lc4.text_input("曲线参数 $y(t)$:", value="t**2")
-    
     lc5, lc6 = st.columns(2)
     t_start_str = lc5.text_input("参数 $t$ 起点:", value="0")
     t_end_str = lc6.text_input("参数 $t$ 终点:", value="1")
@@ -666,23 +652,17 @@ with tab_line:
             result = sp.integrate(integrand, (t, t_start, t_end))
             
             st.success("🎉 曲线积分计算成功！")
-            
             with st.expander("👀 查看极度舒适的微积分代换过程", expanded=True):
                 st.markdown("**1. 原始第二类曲线积分式:**")
                 st.latex(f"\\int_L ({sp.latex(P)})dx + ({sp.latex(Q)})dy")
-                
                 st.markdown("**2. 将 $x(t), y(t)$ 代入向量场得到 $P(t), Q(t)$:**")
                 st.latex(f"P(t) = {sp.latex(P_t)}, \\quad Q(t) = {sp.latex(Q_t)}")
-                
                 st.markdown("**3. 对参数方程求导得到微分项 $dx, dy$:**")
                 st.latex(f"dx = ({sp.latex(dx_dt)})dt, \\quad dy = ({sp.latex(dy_dt)})dt")
-                
                 st.markdown("**4. 组装为关于 $t$ 的一元定积分:**")
                 st.latex(f"\\int_{{{sp.latex(t_start)}}}^{{{sp.latex(t_end)}}} \\left[ ({sp.latex(P_t)})({sp.latex(dx_dt)}) + ({sp.latex(Q_t)})({sp.latex(dy_dt)}) \\right] dt")
-                
                 st.markdown("**5. 化简被积函数:**")
                 st.latex(f"\\int_{{{sp.latex(t_start)}}}^{{{sp.latex(t_end)}}} \\left( {sp.latex(sp.simplify(integrand))} \\right) dt")
-                
                 st.markdown("**6. 最终计算结果:**")
                 st.latex(f"= {sp.latex(result)}")
         except:
