@@ -1,9 +1,74 @@
+import streamlit.components.v1 as components
 import streamlit as st
 import sympy as sp
 import numpy as np
 import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="全能微积分计算器", page_icon="🧮", layout="centered")
+
+# ==========================================
+# 🧚‍♀️ 萌物召唤模块：全屏可拖拽的看板小人
+# ==========================================
+def summon_mascot():
+    # 这是一段前端黑魔法：跨域把一个 div 挂载到父级页面上，并赋予它拖拽生命
+    mascot_code = """
+    <script>
+    const parentDoc = window.parent.document;
+    
+    // 检查是不是已经召唤过小人了（防止每次点击按钮都跑出来一个新的）
+    if (!parentDoc.getElementById("cute-mascot")) {
+        const mascot = parentDoc.createElement("div");
+        mascot.id = "cute-mascot";
+        
+        // CSS 样式：固定在右下角、最上层、鼠标变成小手
+        mascot.style.position = "fixed";
+        mascot.style.bottom = "30px";
+        mascot.style.right = "30px";
+        mascot.style.zIndex = "999999";
+        mascot.style.cursor = "grab";
+        mascot.style.userSelect = "none";
+        
+        // 🌟 小人的图片地址 (你可以换成任何你喜欢的 GIF/PNG 链接)
+        // 这里我先用了一个敲电脑的萌萌猫咪 GIF 作为演示
+        mascot.innerHTML = '<img src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif" width="120px" style="pointer-events: none; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 3px solid #FF4B2B;"/>';
+        
+        parentDoc.body.appendChild(mascot);
+
+        // 🖱️ 拖拽物理引擎
+        let isDragging = false;
+        let offsetX, offsetY;
+
+        mascot.onmousedown = function(e) {
+            isDragging = true;
+            // 记录鼠标点下去时，跟小人左上角的偏差
+            offsetX = e.clientX - mascot.getBoundingClientRect().left;
+            offsetY = e.clientY - mascot.getBoundingClientRect().top;
+            mascot.style.cursor = "grabbing";
+        };
+
+        parentDoc.onmousemove = function(e) {
+            if (isDragging) {
+                // 跟着鼠标移动！
+                mascot.style.left = (e.clientX - offsetX) + "px";
+                mascot.style.top = (e.clientY - offsetY) + "px";
+                // 取消原本绑死在右下角的定位
+                mascot.style.bottom = "auto";
+                mascot.style.right = "auto";
+            }
+        };
+
+        parentDoc.onmouseup = function() {
+            isDragging = false;
+            mascot.style.cursor = "grab";
+        };
+    }
+    </script>
+    """
+    # 偷偷执行这段脚本，不占据原来的页面空间
+    components.html(mascot_code, height=0, width=0)
+
+# 启动！召唤小人！
+summon_mascot()
 
 # ==========================================
 # 🎨 核心视觉升级：前端 CSS 黑魔法注入
