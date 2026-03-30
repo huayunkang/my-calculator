@@ -316,28 +316,7 @@ with tab_math:
 # ------------------------------------------
 # 第二页：解方程
 # ------------------------------------------
-with tab_math:
-    with st.expander("🎹 点击展开科学计算快捷键盘"):
-        b1, b2, b3, b4 = st.columns(4)
-        # 🌟 加上了直观的 Unicode 数学符号提示
-        b1.button("📐 sin(", on_click=add_to_expr, args=("sin(",))
-        b2.button("📐 cos(", on_click=add_to_expr, args=("cos(",))
-        b3.button("📐 tan(", on_click=add_to_expr, args=("tan(",))
-        b4.button("π (圆周率)", on_click=add_to_expr, args=("pi",))
-        
-        b5, b6, b7, b8 = st.columns(4)
-        b5.button("㏒ log(", on_click=add_to_expr, args=("log(",))
-        b6.button("ℯˣ exp(", on_click=add_to_expr, args=("exp(",))
-        b7.button("√ sqrt(", on_click=add_to_expr, args=("sqrt(",))
-        b8.button("ℯ (自然底数)", on_click=add_to_expr, args=("E",))
 
-        b9, b10, b11, b12 = st.columns(4)
-        b9.button("𝒙 (变量)", on_click=add_to_expr, args=("x",))
-        b10.button("xʸ (** 乘方)", on_click=add_to_expr, args=("**",))
-        b11.button("( ) 闭合括号", on_click=add_to_expr, args=(")",))
-        b12.button("🗑️ 清空", on_click=clear_expr)
-
-    expr_str = st.text_input("请输入算式:", key="math_expr")
 with tab_eq:
     st.markdown("### 🔍 智能方程求解器")
     eq_str = st.text_input("请输入方程 (用逗号隔开):", value="x**2 - 5*x + 6 = 0")
