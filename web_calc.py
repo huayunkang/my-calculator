@@ -183,7 +183,9 @@ def clear_sum(): st.session_state.sum_expr = ""
 
 # --- 多重积分专属控制 ---
 if "multi_expr" not in st.session_state:
-    st.session_state.multi_expr = "x * y"def add_to_multi(text): st.session_state.multi_expr += text
+    st.session_state.multi_expr = "x * y"
+
+def add_to_multi(text): st.session_state.multi_expr += text
 def clear_multi(): st.session_state.multi_expr = ""
 
 x, y, z, n, i, k, t = sp.symbols('x y z n i k t')
