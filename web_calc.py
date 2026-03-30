@@ -175,6 +175,17 @@ if "eq_expr" not in st.session_state:
     
 def add_to_eq(text): st.session_state.eq_expr += text
 def clear_eq(): st.session_state.eq_expr = ""
+# --- 级数求和专属控制 ---
+if "sum_expr" not in st.session_state:
+    st.session_state.sum_expr = "n**2"
+def add_to_sum(text): st.session_state.sum_expr += text
+def clear_sum(): st.session_state.sum_expr = ""
+
+# --- 多重积分专属控制 ---
+if "multi_expr" not in st.session_state:
+    st.session_state.multi_expr = "x * y"
+def add_to_multi(text): st.session_state.multi_expr += text
+def clear_multi(): st.session_state.multi_expr = ""
 
 x, y, z, n, i, k, t = sp.symbols('x y z n i k t')
 
@@ -387,10 +398,28 @@ with tab_eq:
 # ------------------------------------------
 with tab_sum:
     st.markdown("### ➕ 西格玛 (Σ) 求和神器")
-    sum_expr_str = st.text_input("求和通项公式 (如: n**2):", value="n")
+    
+    # 🌟 新增：级数专属键盘
+    with st.expander("🎹 点击展开级数快捷键盘"):
+        sb1, sb2, sb3, sb4 = st.columns(4)
+        sb1.button("𝒏 (变量n)", key="sum_n", on_click=add_to_sum, args=("n",))
+        sb2.button("𝒊 (变量i)", key="sum_i", on_click=add_to_sum, args=("i",))
+        sb3.button("𝒌 (变量k)", key="sum_k", on_click=add_to_sum, args=("k",))
+        sb4.button("∞ (无穷大)", key="sum_oo", on_click=add_to_sum, args=("oo",))
+
+        sb5, sb6, sb7, sb8 = st.columns(4)
+        sb5.button("xʸ (** 乘方)", key="sum_pow", on_click=add_to_sum, args=("**",))
+        sb6.button("( ) 括号", key="sum_bracket", on_click=add_to_sum, args=("()",))
+        sb7.button("/ (除号)", key="sum_div", on_click=add_to_sum, args=("/",))
+        sb8.button("🗑️ 清空", key="sum_clear", on_click=clear_sum)
+
+    # 🌟 绑定到级数专属的 key
+    sum_expr_str = st.text_input("求和通项公式:", key="sum_expr")
+    
     col_s1, col_s2 = st.columns(2)
     sum_lower_str = col_s1.text_input("求和下限:", value="1")
     sum_upper_str = col_s2.text_input("求和上限 (如 oo):", value="10")
+    
     if st.button("🧮 计算级数求和"):
         try:
             func_sum = sp.sympify(sum_expr_str)
@@ -417,7 +446,23 @@ with tab_multi:
     st.markdown("### 🌀 空间多重积分求解")
     int_type = st.radio("请选择积分维度:", ["∬ 二重积分", "∭ 三重积分"], horizontal=True)
     is_triple = "三重" in int_type
-    multi_expr = st.text_input("被积函数 f(x,y,z):", value="x * y * z" if is_triple else "sin(x) * cos(y)")
+    
+    # 🌟 新增：多重积分专属键盘
+    with st.expander("🎹 点击展开空间积分快捷键盘"):
+        mb1, mb2, mb3, mb4 = st.columns(4)
+        mb1.button("𝒙 (变量x)", key="mul_x", on_click=add_to_multi, args=("x",))
+        mb2.button("𝒚 (变量y)", key="mul_y", on_click=add_to_multi, args=("y",))
+        mb3.button("𝒛 (变量z)", key="mul_z", on_click=add_to_multi, args=("z",))
+        mb4.button("π (圆周率)", key="mul_pi", on_click=add_to_multi, args=("pi",))
+
+        mb5, mb6, mb7, mb8 = st.columns(4)
+        mb5.button("📐 sin(", key="mul_sin", on_click=add_to_multi, args=("sin(",))
+        mb6.button("📐 cos(", key="mul_cos", on_click=add_to_multi, args=("cos(",))
+        mb7.button("xʸ (** 乘方)", key="mul_pow", on_click=add_to_multi, args=("**",))
+        mb8.button("🗑️ 清空", key="mul_clear", on_click=clear_multi)
+
+    # 🌟 绑定到多重积分专属的 key
+    multi_expr = st.text_input("被积函数 f(x,y,z):", key="multi_expr")
     
     st.markdown("**最外层积分 (dx):**")
     c_x1, c_x2 = st.columns(2)
@@ -435,7 +480,6 @@ with tab_multi:
     def plot_3d_integral(func_expr, xl_val, xu_val, yl_func, yu_func):
         fig = plt.figure(figsize=(8, 6))
         ax = fig.add_subplot(111, projection='3d')
-        # 🌟 已经修复这里的暗黑模式变量名
         if dark_mode:
             plt.style.use('dark_background')
             fig.patch.set_alpha(0.0)
@@ -496,7 +540,6 @@ with tab_multi:
             if result.is_number and not result.has(sp.oo): 
                 st.info(f"**近似数值:** `{result.evalf():.6f}`")
         except: st.error("计算失败！")
-
 # ------------------------------------------
 # 第五页：线性代数与矩阵
 # ------------------------------------------
