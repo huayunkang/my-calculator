@@ -190,8 +190,8 @@ def clear_multi(): st.session_state.multi_expr = ""
 
 x, y, z, n, i, k, t = sp.symbols('x y z n i k t')
 
-tab_math, tab_eq, tab_sum, tab_multi, tab_linalg, tab_prog, tab_vector, tab_surface, tab_line = st.tabs(
-    ["📚 微积分", "🔍 解方程", "➕ 级数", "🌀 多重积分", "🧮 线性代数", "💻 程序员", "📐 向量", "🏺 旋转面", "〰️ 曲线积分"]
+tab_math, tab_eq, tab_sum, tab_multi, tab_linalg, tab_prog, tab_vector, tab_surface, tab_line, tab_physics = st.tabs(
+    ["📚 微积分", "🔍 解方程", "➕ 级数", "🌀 多重积分", "🧮 线性代数", "💻 程序员", "📐 向量", "🏺 旋转面", "〰️ 曲线积分", "🍎 物理引擎"]
 )
 
 def plot_graph(func, fill_a=None, fill_b=None):
@@ -768,3 +768,72 @@ with tab_line:
                 st.latex(f"= {sp.latex(result)}")
         except:
             st.error("计算失败！请确保参数使用了变量 t。")
+# ==========================================
+# 第十页：物理引擎 (力学 & 电磁学)
+# ==========================================
+with tab_physics:
+    st.markdown("### 🍎 智能物理计算引擎")
+    
+    physics_mode = st.radio("请选择物理定律领域:", ["🛹 经典力学 (滑动摩擦力)", "🧲 电磁学 (安培力)"], horizontal=True)
+    
+    if "力学" in physics_mode:
+        st.markdown("#### 🛹 滑动摩擦力定律计算")
+        st.info("公式: $f = \\mu F_N$ (若在水平面上，$F_N = mg$)")
+        
+        pc1, pc2, pc3 = st.columns(3)
+        mu_str = pc1.text_input("动摩擦因数 $\\mu$:", value="0.5")
+        m_str = pc2.text_input("物体质量 $m$ (kg):", value="10")
+        g_str = pc3.text_input("重力加速度 $g$ (m/s²):", value="9.8")
+        
+        if st.button("🚀 计算滑动摩擦力"):
+            try:
+                mu, m, g_val = sp.sympify(mu_str), sp.sympify(m_str), sp.sympify(g_str)
+                f_n = m * g_val
+                f_friction = mu * f_n
+                
+                st.success("计算完成！")
+                with st.expander("👀 查看力学推导过程", expanded=True):
+                    st.markdown("**1. 计算正压力 $F_N$:**")
+                    st.latex(f"F_N = m \\cdot g = {sp.latex(m)} \\times {sp.latex(g_val)} = {sp.latex(f_n)} \\text{{ N}}")
+                    st.markdown("**2. 应用摩擦力公式 $f = \\mu F_N$:**")
+                    st.latex(f"f = {sp.latex(mu)} \\times {sp.latex(f_n)}")
+                    st.markdown("**3. 最终摩擦力大小:**")
+                    st.latex(f"= {sp.latex(f_friction)} \\text{{ N}}")
+            except:
+                st.error("输入格式有误，请确保输入数字或代数式。")
+                
+    elif "电磁" in physics_mode:
+        st.markdown("#### 🧲 安培力计算 (磁场对电流的作用力)")
+        st.info("公式: $F = B I L \\sin(\\theta)$")
+        
+        ec1, ec2 = st.columns(2)
+        B_str = ec1.text_input("磁感应强度 $B$ (T):", value="0.2")
+        I_str = ec2.text_input("电流 $I$ (A):", value="5")
+        
+        ec3, ec4 = st.columns(2)
+        L_str = ec3.text_input("导线长度 $L$ (m):", value="2")
+        theta_str = ec4.text_input("夹角 $\\theta$ (度, °):", value="90")
+        
+        if st.button("⚡ 计算安培力"):
+            try:
+                B, I_val, L = sp.sympify(B_str), sp.sympify(I_str), sp.sympify(L_str)
+                # 将角度转换为弧度进行计算
+                theta_deg = sp.sympify(theta_str)
+                theta_rad = theta_deg * sp.pi / 180
+                
+                # 计算安培力
+                F_ampere = B * I_val * L * sp.sin(theta_rad)
+                
+                st.success("计算完成！")
+                with st.expander("👀 查看电磁学推导过程", expanded=True):
+                    st.markdown("**1. 原始安培力公式:**")
+                    st.latex("F = B \\cdot I \\cdot L \\cdot \\sin(\\theta)")
+                    st.markdown("**2. 代入物理量 (注意角度转弧度):**")
+                    st.latex(f"F = ({sp.latex(B)}) \\times ({sp.latex(I_val)}) \\times ({sp.latex(L)}) \\times \\sin({sp.latex(theta_deg)}^\\circ)")
+                    st.markdown("**3. 最终受力大小:**")
+                    st.latex(f"= {sp.latex(sp.simplify(F_ampere))} \\text{{ N}}")
+                    
+                    if F_ampere.is_number and not F_ampere.has(sp.pi):
+                         st.info(f"**近似数值:** `{F_ampere.evalf():.4f} N`")
+            except:
+                st.error("输入格式有误，请确保输入有效数值。")
