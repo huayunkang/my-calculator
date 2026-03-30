@@ -768,21 +768,6 @@ with tab_line:
                 st.latex(f"= {sp.latex(result)}")
         except:
             st.error("计算失败！请确保参数使用了变量 t。")
-# ==========================================
-# 第十页：物理引擎 (群星闪耀的物理学法则)
-# ==========================================
-with tab_physics:
-    st.markdown("### 🌌 宇宙真理解析引擎 (Physics Engine)")
-    
-    # 一级菜单：选择物理学分支
-    domain = st.selectbox("📚 请选择物理学领域:", [
-        "🍎 经典力学 (Classical Mechanics)", 
-        "🔥 热力学与统计物理 (Thermodynamics)", 
-        "⚡ 电磁学 (Electromagnetism)", 
-        "🚀 近代物理 (Modern Physics)"
-    ])
-    
-    st.markdown("---")
 
 # ==========================================
 # 第十页：物理引擎 (群星闪耀的物理学法则)
