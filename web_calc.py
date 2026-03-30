@@ -5,15 +5,28 @@ import matplotlib.pyplot as plt
 import streamlit.components.v1 as components  
 
 # ==========================================
-# 🌟 修复 Matplotlib 中文“豆腐块”乱码问题
+# 🌟 修复 Matplotlib 中文“豆腐块”乱码问题 (终极破壁版)
 # ==========================================
+import matplotlib
+import os
+import shutil
+
+@st.cache_resource
+def clear_font_cache():
+    # 强制摧毁 Matplotlib 的旧字体缓存，逼它重新去认字！
+    cache_dir = matplotlib.get_cachedir()
+    if os.path.exists(cache_dir):
+        try:
+            shutil.rmtree(cache_dir)
+        except:
+            pass
+
+clear_font_cache() # 执行缓存清理操作
+
 # 优先使用云端微米黑字体，找不到再退化到本地的黑体/雅黑/苹方
 plt.rcParams['font.sans-serif'] = ['WenQuanYi Micro Hei', 'SimHei', 'Microsoft YaHei', 'PingFang SC', 'sans-serif']
 # 解决坐标轴上负号 '-' 显示为方块的问题
 plt.rcParams['axes.unicode_minus'] = False
-
-st.set_page_config(page_title="Ultra Max 计算器 Quantum", page_icon="🧮", layout="centered")
-
 # ==========================================
 # 🧚‍♀️ 萌物召唤模块：全屏可拖拽的看板小猫
 # ==========================================
