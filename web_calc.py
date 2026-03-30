@@ -769,71 +769,225 @@ with tab_line:
         except:
             st.error("计算失败！请确保参数使用了变量 t。")
 # ==========================================
-# 第十页：物理引擎 (力学 & 电磁学)
+# 第十页：物理引擎 (群星闪耀的物理学法则)
 # ==========================================
 with tab_physics:
-    st.markdown("### 🍎 智能物理计算引擎")
+    st.markdown("### 🌌 宇宙真理解析引擎 (Physics Engine)")
     
-    physics_mode = st.radio("请选择物理定律领域:", ["🛹 经典力学 (滑动摩擦力)", "🧲 电磁学 (安培力)"], horizontal=True)
+    # 一级菜单：选择物理学分支
+    domain = st.selectbox("📚 请选择物理学领域:", [
+        "🍎 经典力学 (Classical Mechanics)", 
+        "🔥 热力学与统计物理 (Thermodynamics)", 
+        "⚡ 电磁学 (Electromagnetism)", 
+        "🚀 近代物理 (Modern Physics)"
+    ])
     
-    if "力学" in physics_mode:
-        st.markdown("#### 🛹 滑动摩擦力定律计算")
-        st.info("公式: $f = \\mu F_N$ (若在水平面上，$F_N = mg$)")
+    st.markdown("---")
+
+    # ==========================================
+    # 🍎 经典力学
+    # ==========================================
+    if "力学" in domain:
+        creator = st.radio("🧑‍🔬 选择定律与提出者:", [
+            "【艾萨克·牛顿】万有引力定律", 
+            "【艾萨克·牛顿】牛顿第二定律",
+            "【罗伯特·胡克】胡克定律 (弹性力)",
+            "【纪尧姆·阿蒙顿】滑动摩擦力定律"
+        ], horizontal=True)
         
-        pc1, pc2, pc3 = st.columns(3)
-        mu_str = pc1.text_input("动摩擦因数 $\\mu$:", value="0.5")
-        m_str = pc2.text_input("物体质量 $m$ (kg):", value="10")
-        g_str = pc3.text_input("重力加速度 $g$ (m/s²):", value="9.8")
-        
-        if st.button("🚀 计算滑动摩擦力"):
-            try:
-                mu, m, g_val = sp.sympify(mu_str), sp.sympify(m_str), sp.sympify(g_str)
-                f_n = m * g_val
-                f_friction = mu * f_n
+        if "万有引力" in creator:
+            st.markdown("#### 🌍 万有引力定律 (Law of Universal Gravitation)")
+            st.info("公式: $F = G \\frac{m_1 m_2}{r^2}$ (任何两个有质量的物体之间都存在相互吸引力)")
+            col1, col2, col3 = st.columns(3)
+            m1_str = col1.text_input("质量 $m_1$ (kg):", value="5.97e24", key="g_m1") # 默认地球质量
+            m2_str = col2.text_input("质量 $m_2$ (kg):", value="70", key="g_m2") # 默认一个人的质量
+            r_str = col3.text_input("距离 $r$ (m):", value="6.371e6", key="g_r") # 默认地球半径
+            
+            if st.button("🚀 计算万有引力"):
+                try:
+                    m1, m2, r = sp.sympify(m1_str), sp.sympify(m2_str), sp.sympify(r_str)
+                    G = sp.sympify("6.6743e-11") # 引力常数
+                    F = G * (m1 * m2) / (r**2)
+                    st.success("推导完成！")
+                    with st.expander("👀 查看万有引力推导过程", expanded=True):
+                        st.latex(f"F = {sp.latex(G)} \\times \\frac{{{sp.latex(m1)} \\times {sp.latex(m2)}}}{{{sp.latex(r)}^2}}")
+                        st.latex(f"= {sp.latex(sp.simplify(F))} \\text{{ N}}")
+                        if F.is_number: st.info(f"**科学计数法近似值:** `{float(F.evalf()):.4e} N`")
+                except: st.error("输入格式有误！")
                 
-                st.success("计算完成！")
-                with st.expander("👀 查看力学推导过程", expanded=True):
-                    st.markdown("**1. 计算正压力 $F_N$:**")
-                    st.latex(f"F_N = m \\cdot g = {sp.latex(m)} \\times {sp.latex(g_val)} = {sp.latex(f_n)} \\text{{ N}}")
-                    st.markdown("**2. 应用摩擦力公式 $f = \\mu F_N$:**")
-                    st.latex(f"f = {sp.latex(mu)} \\times {sp.latex(f_n)}")
-                    st.markdown("**3. 最终摩擦力大小:**")
-                    st.latex(f"= {sp.latex(f_friction)} \\text{{ N}}")
-            except:
-                st.error("输入格式有误，请确保输入数字或代数式。")
+        elif "第二定律" in creator:
+            st.markdown("#### 🏃 牛顿第二定律 (Newton's Second Law)")
+            st.info("公式: $F = m a$ (物体的加速度与受到的合外力成正比)")
+            col1, col2 = st.columns(2)
+            m_str = col1.text_input("质量 $m$ (kg):", value="10", key="n2_m")
+            a_str = col2.text_input("加速度 $a$ (m/s²):", value="9.8", key="n2_a")
+            if st.button("🚀 计算合外力"):
+                try:
+                    m, a = sp.sympify(m_str), sp.sympify(a_str)
+                    F = m * a
+                    st.success("推导完成！")
+                    with st.expander("👀 查看计算过程", expanded=True):
+                        st.latex(f"F = {sp.latex(m)} \\times {sp.latex(a)} = {sp.latex(F)} \\text{{ N}}")
+                except: st.error("输入格式有误！")
                 
-    elif "电磁" in physics_mode:
-        st.markdown("#### 🧲 安培力计算 (磁场对电流的作用力)")
-        st.info("公式: $F = B I L \\sin(\\theta)$")
+        elif "胡克" in creator:
+            st.markdown("#### 🪀 胡克定律 (Hooke's Law)")
+            st.info("公式: $F = -k x$ (弹簧发生弹性形变时，弹力与形变量成正比)")
+            col1, col2 = st.columns(2)
+            k_str = col1.text_input("劲度系数 $k$ (N/m):", value="500", key="hk_k")
+            x_str = col2.text_input("形变量 $x$ (m):", value="0.2", key="hk_x")
+            if st.button("🚀 计算弹力大小"):
+                try:
+                    k_val, x_val = sp.sympify(k_str), sp.sympify(x_str)
+                    F = k_val * x_val
+                    st.success("推导完成！")
+                    with st.expander("👀 查看计算过程", expanded=True):
+                        st.latex(f"|F| = k \\cdot x = {sp.latex(k_val)} \\times {sp.latex(x_val)} = {sp.latex(F)} \\text{{ N}}")
+                except: st.error("输入格式有误！")
+
+        elif "阿蒙顿" in creator:
+            st.markdown("#### 🛹 滑动摩擦力定律 (Amontons's Law of Friction)")
+            st.info("公式: $f = \\mu F_N$")
+            col1, col2 = st.columns(2)
+            mu_str = col1.text_input("动摩擦因数 $\\mu$:", value="0.3", key="fr_mu")
+            fn_str = col2.text_input("正压力 $F_N$ (N):", value="98", key="fr_fn")
+            if st.button("🚀 计算滑动摩擦力"):
+                try:
+                    mu, fn = sp.sympify(mu_str), sp.sympify(fn_str)
+                    f = mu * fn
+                    st.success("推导完成！")
+                    with st.expander("👀 查看计算过程", expanded=True):
+                        st.latex(f"f = {sp.latex(mu)} \\times {sp.latex(fn)} = {sp.latex(f)} \\text{{ N}}")
+                except: st.error("输入格式有误！")
+
+    # ==========================================
+    # 🔥 热力学与统计物理
+    # ==========================================
+    elif "热力学" in domain:
+        creator = st.radio("🧑‍🔬 选择定律与提出者:", [
+            "【克拉珀龙】理想气体状态方程",
+            "【斯特藩-玻尔兹曼】黑体辐射定律"
+        ], horizontal=True)
         
-        ec1, ec2 = st.columns(2)
-        B_str = ec1.text_input("磁感应强度 $B$ (T):", value="0.2")
-        I_str = ec2.text_input("电流 $I$ (A):", value="5")
-        
-        ec3, ec4 = st.columns(2)
-        L_str = ec3.text_input("导线长度 $L$ (m):", value="2")
-        theta_str = ec4.text_input("夹角 $\\theta$ (度, °):", value="90")
-        
-        if st.button("⚡ 计算安培力"):
-            try:
-                B, I_val, L = sp.sympify(B_str), sp.sympify(I_str), sp.sympify(L_str)
-                # 将角度转换为弧度进行计算
-                theta_deg = sp.sympify(theta_str)
-                theta_rad = theta_deg * sp.pi / 180
+        if "理想气体" in creator:
+            st.markdown("#### 🎈 理想气体状态方程 (Ideal Gas Law)")
+            st.info("公式: $P = \\frac{nRT}{V}$ (描述了气体的压强、体积、温度与物质的量之间的关系)")
+            col1, col2, col3 = st.columns(3)
+            n_str = col1.text_input("物质的量 $n$ (mol):", value="1", key="ig_n")
+            T_str = col2.text_input("绝对温度 $T$ (K):", value="298.15", key="ig_T")
+            V_str = col3.text_input("体积 $V$ (m³):", value="0.0224", key="ig_V")
+            if st.button("🔥 计算气体压强"):
+                try:
+                    n_val, T_val, V_val = sp.sympify(n_str), sp.sympify(T_str), sp.sympify(V_str)
+                    R = sp.sympify("8.314") # 理想气体常数
+                    P = (n_val * R * T_val) / V_val
+                    st.success("推导完成！")
+                    with st.expander("👀 查看热力学推导过程", expanded=True):
+                        st.latex(f"P = \\frac{{{sp.latex(n_val)} \\times {sp.latex(R)} \\times {sp.latex(T_val)}}}{{{sp.latex(V_val)}}}")
+                        st.latex(f"= {sp.latex(sp.simplify(P))} \\text{{ Pa}}")
+                        if P.is_number: st.info(f"**近似数值:** `{float(P.evalf()):.2f} Pa` (帕斯卡)")
+                except: st.error("输入格式有误！")
                 
-                # 计算安培力
-                F_ampere = B * I_val * L * sp.sin(theta_rad)
+        elif "黑体" in creator:
+            st.markdown("#### ☀️ 斯特藩-玻尔兹曼定律 (Stefan-Boltzmann Law)")
+            st.info("公式: $j^{\\star} = \\sigma T^4$ (黑体表面单位面积的辐射功率与绝对温度的四次方成正比)")
+            T_str = st.text_input("黑体绝对温度 $T$ (K):", value="5778", key="sb_T") # 默认太阳表面温度
+            if st.button("🔥 计算辐射功率出射度"):
+                try:
+                    T_val = sp.sympify(T_str)
+                    sigma = sp.sympify("5.670374e-8") # 斯特藩-玻尔兹曼常数
+                    j = sigma * (T_val**4)
+                    st.success("推导完成！")
+                    with st.expander("👀 查看黑体辐射计算过程", expanded=True):
+                        st.latex(f"j^{{\\star}} = {sp.latex(sigma)} \\times ({sp.latex(T_val)})^4")
+                        st.latex(f"= {sp.latex(sp.simplify(j))} \\text{{ W/m}}^2")
+                        if j.is_number: st.info(f"**科学计数法近似值:** `{float(j.evalf()):.4e} W/m²`")
+                except: st.error("输入格式有误！")
+
+    # ==========================================
+    # ⚡ 电磁学
+    # ==========================================
+    elif "电磁" in domain:
+        creator = st.radio("🧑‍🔬 选择定律与提出者:", [
+            "【查尔斯·库仑】库仑定律",
+            "【安德烈·安培】安培力公式",
+            "【迈克尔·法拉第】电磁感应定律"
+        ], horizontal=True)
+        
+        if "库仑" in creator:
+            st.markdown("#### ⚡ 库仑定律 (Coulomb's Law)")
+            st.info("公式: $F = k_e \\frac{q_1 q_2}{r^2}$ (真空中两个静止点电荷之间的相互作用力)")
+            col1, col2, col3 = st.columns(3)
+            q1_str = col1.text_input("电荷 $q_1$ (C):", value="1e-6", key="cb_q1")
+            q2_str = col2.text_input("电荷 $q_2$ (C):", value="1e-6", key="cb_q2")
+            r_str = col3.text_input("距离 $r$ (m):", value="0.1", key="cb_r")
+            if st.button("⚡ 计算库仑力"):
+                try:
+                    q1, q2, r = sp.sympify(q1_str), sp.sympify(q2_str), sp.sympify(r_str)
+                    k_e = sp.sympify("8.98755e9") # 库仑常数
+                    F = k_e * (q1 * q2) / (r**2)
+                    st.success("推导完成！")
+                    with st.expander("👀 查看电磁力推导过程", expanded=True):
+                        st.latex(f"F = {sp.latex(k_e)} \\times \\frac{{{sp.latex(q1)} \\times {sp.latex(q2)}}}{{{sp.latex(r)}^2}}")
+                        if F.is_number: st.info(f"**近似数值:** `{float(F.evalf()):.4e} N`")
+                except: st.error("输入格式有误！")
                 
-                st.success("计算完成！")
-                with st.expander("👀 查看电磁学推导过程", expanded=True):
-                    st.markdown("**1. 原始安培力公式:**")
-                    st.latex("F = B \\cdot I \\cdot L \\cdot \\sin(\\theta)")
-                    st.markdown("**2. 代入物理量 (注意角度转弧度):**")
-                    st.latex(f"F = ({sp.latex(B)}) \\times ({sp.latex(I_val)}) \\times ({sp.latex(L)}) \\times \\sin({sp.latex(theta_deg)}^\\circ)")
-                    st.markdown("**3. 最终受力大小:**")
-                    st.latex(f"= {sp.latex(sp.simplify(F_ampere))} \\text{{ N}}")
-                    
-                    if F_ampere.is_number and not F_ampere.has(sp.pi):
-                         st.info(f"**近似数值:** `{F_ampere.evalf():.4f} N`")
-            except:
-                st.error("输入格式有误，请确保输入有效数值。")
+        elif "安培" in creator:
+            st.markdown("#### 🧲 安培力计算 (Ampère's Force Law)")
+            st.info("公式: $F = B I L \\sin(\\theta)$")
+            col1, col2, col3, col4 = st.columns(4)
+            B_str = col1.text_input("磁场 $B$ (T):", value="0.5", key="am_B")
+            I_str = col2.text_input("电流 $I$ (A):", value="2", key="am_I")
+            L_str = col3.text_input("导线 $L$ (m):", value="1", key="am_L")
+            theta_str = col4.text_input("夹角 $\\theta$ (°):", value="90", key="am_t")
+            if st.button("⚡ 计算安培力"):
+                try:
+                    B, I_val, L, theta_deg = sp.sympify(B_str), sp.sympify(I_str), sp.sympify(L_str), sp.sympify(theta_str)
+                    theta_rad = theta_deg * sp.pi / 180
+                    F = B * I_val * L * sp.sin(theta_rad)
+                    st.success("推导完成！")
+                    with st.expander("👀 查看过程", expanded=True):
+                        st.latex(f"F = {sp.latex(B)} \\cdot {sp.latex(I_val)} \\cdot {sp.latex(L)} \\cdot \\sin({sp.latex(theta_deg)}^\\circ)")
+                        st.latex(f"= {sp.latex(sp.simplify(F))} \\text{{ N}}")
+                except: st.error("输入有误！")
+
+        elif "法拉第" in creator:
+            st.markdown("#### 🔋 法拉第电磁感应定律 (Faraday's Law of Induction)")
+            st.info("公式: $\\mathcal{E} = -N \\frac{\\Delta \\Phi}{\\Delta t}$ (闭合电路中感应电动势的大小)")
+            col1, col2, col3 = st.columns(3)
+            N_str = col1.text_input("线圈匝数 $N$:", value="100", key="fa_N")
+            dPhi_str = col2.text_input("磁通量变化 $\\Delta \\Phi$ (Wb):", value="0.05", key="fa_dPhi")
+            dt_str = col3.text_input("时间变化 $\\Delta t$ (s):", value="0.1", key="fa_dt")
+            if st.button("⚡ 计算感应电动势"):
+                try:
+                    N, dPhi, dt = sp.sympify(N_str), sp.sympify(dPhi_str), sp.sympify(dt_str)
+                    E = N * (dPhi / dt) # 这里取绝对值大小
+                    st.success("推导完成！")
+                    with st.expander("👀 查看计算过程", expanded=True):
+                        st.latex(f"|\\mathcal{{E}}| = {sp.latex(N)} \\times \\frac{{{sp.latex(dPhi)}}}{{{sp.latex(dt)}}} = {sp.latex(E)} \\text{{ V}}")
+                except: st.error("输入有误！")
+
+    # ==========================================
+    # 🚀 近代物理
+    # ==========================================
+    elif "近代物理" in domain:
+        creator = st.radio("🧑‍🔬 选择定律与提出者:", [
+            "【阿尔伯特·爱因斯坦】质能等价理论"
+        ], horizontal=True)
+        
+        if "爱因斯坦" in creator:
+            st.markdown("#### ⚛️ 质能方程 (Mass-Energy Equivalence)")
+            st.info("公式: $E = m c^2$ (质量和能量是等价的，可以相互转化)")
+            m_str = st.text_input("湮灭/转化质量 $m$ (kg):", value="1", key="emc_m")
+            if st.button("🚀 计算蕴含能量"):
+                try:
+                    m = sp.sympify(m_str)
+                    c = sp.sympify("299792458") # 光速精确值
+                    E = m * (c**2)
+                    st.success("推导完成！")
+                    with st.expander("👀 查看质能转化过程", expanded=True):
+                        st.latex(f"E = {sp.latex(m)} \\times ({sp.latex(c)})^2")
+                        st.latex(f"= {sp.latex(sp.simplify(E))} \\text{{ J (焦耳)}}")
+                        if E.is_number: st.info(f"**科学计数法近似值:** `{float(E.evalf()):.4e} 焦耳`")
+                        st.caption("💡 提示：1公斤物质完全转化释放的能量，相当于数千万吨TNT炸药爆炸的当量！")
+                except: st.error("输入格式有误！")
