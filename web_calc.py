@@ -4,6 +4,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import streamlit.components.v1 as components  
 
+# ==========================================
+# 🌟 修复 Matplotlib 中文“豆腐块”乱码问题
+# ==========================================
+# 优先使用云端微米黑字体，找不到再退化到本地的黑体/雅黑/苹方
+plt.rcParams['font.sans-serif'] = ['WenQuanYi Micro Hei', 'SimHei', 'Microsoft YaHei', 'PingFang SC', 'sans-serif']
+# 解决坐标轴上负号 '-' 显示为方块的问题
+plt.rcParams['axes.unicode_minus'] = False
+
 st.set_page_config(page_title="Ultra Max 计算器 Quantum", page_icon="🧮", layout="centered")
 
 # ==========================================
@@ -175,6 +183,7 @@ if "eq_expr" not in st.session_state:
     
 def add_to_eq(text): st.session_state.eq_expr += text
 def clear_eq(): st.session_state.eq_expr = ""
+
 # --- 级数求和专属控制 ---
 if "sum_expr" not in st.session_state:
     st.session_state.sum_expr = "n**2"
@@ -228,7 +237,7 @@ def plot_graph(func, fill_a=None, fill_b=None):
     ax.axhline(0, color='gray', linewidth=1)
     ax.axvline(0, color='gray', linewidth=1)
     ax.grid(True, linestyle='--', alpha=0.3)
-    st.pyplot(fig) 
+    st.pyplot(fig)
 
 # ------------------------------------------
 # 第一页：微积分 
