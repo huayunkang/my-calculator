@@ -1042,21 +1042,20 @@ with tab_physics:
                     st.caption("💡 提示：你可以尝试把 $\\Delta x$ 调得更小（比如 1e-12），下方的动量波包就会瞬间变得极其宽扁（不确定性暴增）。")
                 except: st.error("量子仿真作图失败！请确保输入了数值。")
 
-        elif "霍金" in creator:
+       elif "霍金" in creator:
             st.markdown("#### 🏺 贝肯斯坦-霍金熵公式 (Bekenstein-Hawking Entropy Formula)")
-            st.info("公式: $S = k_B \\frac{A}{4\\ell_P^2} = \\frac{k_B c^3 A}{4G\\hbar}$ (黑洞的熵 $S$ 正比于其视界面积 $A$)")
+            st.info("公式: $S = k_B \\frac{A}{4\\ell_P^2} = \\frac{k_B c^3 A}{4G\\hbar}$")
             
             with st.expander("👉 👉 这意味着什么?"):
-                st.markdown("**宇宙最强大的熵收割机**：这是物理学史上的终极联姻，它将热力学（熵 $k_B$）、近代物理（光速 $c$, 约化普朗克常数 $\\hbar$）和万有引力（引力常数 $G$）完美结合在一起。它表明，信息和热力学特性可以被编码在黑洞的表面上（全息原理的基础）。")
-                st.markdown("**极致不确定性**：黑洞不仅是引力的黑洞，也是信息的黑洞和热力学的黑洞。它拥有宇宙中已知最高、最极致的熵。")
+                st.markdown("**宇宙最强大的熵收割机**：这是物理学史上的终极联姻，它将热力学、近代物理和万有引力完美结合在一起。")
 
             col_1, col_2 = st.columns([2, 1])
             input_mode = col_2.radio("选择输入方式:", ["已知视界面积 A", "已知黑洞质量 M (例: 太阳)"])
             
             if "面积" in input_mode:
-                A_str = col_1.text_input("请输入视界面积 $A$ (m²):", value="1.3e9", key="bh_A") # 太阳视界面积
+                A_str = col_1.text_input("请输入视界面积 $A$ (m²):", value="1.3e9", key="bh_A") 
             else:
-                M_str = col_1.text_input("请输入黑洞质量 $M$ (kg):", value="1.989e30", key="bh_M") # 太阳质量
+                M_str = col_1.text_input("请输入黑洞质量 $M$ (kg):", value="1.989e30", key="bh_M") 
             
             if st.button("🏺 开启终极真理解析", key="btn_bh"):
                 try:
@@ -1067,25 +1066,64 @@ with tab_physics:
                     
                     if "面积" in input_mode:
                         A = sp.sympify(A_str)
+                        # 反推质量用于画图 M = c^2 * sqrt(A/(16πG^2))
+                        M = (c**2) * sp.sqrt(A / (16 * sp.pi * G**2))
                     else:
                         M = sp.sympify(M_str)
-                        # Schwarzschild 黑洞视界面积公式: A = 16πG²M²/c⁴
                         A = 16 * sp.pi * (G**2) * (M**2) / (c**4)
                         st.info(f"根据质量 $M$ 推导出的视界面积 $A \\approx$ `{float(A.evalf()):.4e}` m²")
 
-                    # 核心公式计算: S = (kB * c^3 * A) / (4 * G * hbar)
+                    # 核心公式计算
                     S_hawking = (kB * c**3 * A) / (4 * G * hbar)
                     
                     st.success("终极解析完成！")
                     with st.expander("👀 查看黑洞熵宇宙终极公式代入过程", expanded=True):
-                        st.markdown("**1. 原始公式:**")
-                        st.latex("S = \\frac{k_B \\cdot c^3 \\cdot A}{4 \\cdot G \\cdot \\hbar}")
-                        st.markdown("**2. 代入终极常数 (真理的味道):**")
                         st.latex(f"S = \\frac{{ ({sp.latex(kB)}) \\cdot ({sp.latex(c)})^3 \\cdot ({sp.latex(A)}) }}{{ 4 \\cdot ({sp.latex(G)}) \\cdot ({sp.latex(hbar)}) }}")
-                        st.markdown("**3. 最终黑洞熵 (Joules per Kelvin):**")
                         st.latex(f"= {sp.latex(sp.simplify(S_hawking))} \\text{{ J/K}}")
-                        
                         if S_hawking.is_number and not S_hawking.has(sp.pi):
                             st.warning(f"**科学计数法近似值 (爆表的熵):** `{float(S_hawking.evalf()):.4e} J/K`")
+
+                    # 🌟 史瓦西黑洞 3D 渲染引擎
+                    Rs = 2 * G * M / (c**2)
+                    Rs_val = float(Rs.evalf())
+                    
+                    st.markdown("#### 🌌 史瓦西黑洞视界模拟图")
+                    if dark_mode:
+                        plt.style.use('dark_background')
+                        disk_cmap = 'magma'
+                    else:
+                        plt.style.use('default')
+                        disk_cmap = 'plasma'
                         
-                except Exception as e: st.error(f"输入格式有误: {e}")
+                    fig = plt.figure(figsize=(6, 6))
+                    ax = fig.add_subplot(111, projection='3d')
+                    fig.patch.set_alpha(0.0); ax.patch.set_alpha(0.0)
+                    ax.xaxis.set_pane_color((0,0,0,0)); ax.yaxis.set_pane_color((0,0,0,0)); ax.zaxis.set_pane_color((0,0,0,0))
+                    ax.axis('off') 
+                    
+                    # 1. 绘制黑洞本体 (事件视界)
+                    u = np.linspace(0, 2 * np.pi, 50); v = np.linspace(0, np.pi, 50)
+                    U, V = np.meshgrid(u, v)
+                    X_bh = Rs_val * np.cos(U) * np.sin(V)
+                    Y_bh = Rs_val * np.sin(U) * np.sin(V)
+                    Z_bh = Rs_val * np.cos(V)
+                    ax.plot_surface(X_bh, Y_bh, Z_bh, color='black', alpha=1.0)
+                    
+                    # 2. 绘制发光吸积盘
+                    rad = np.linspace(Rs_val * 1.2, Rs_val * 3, 30)
+                    theta = np.linspace(0, 2 * np.pi, 60)
+                    R_disk, Theta_disk = np.meshgrid(rad, theta)
+                    X_disk = R_disk * np.cos(Theta_disk); Y_disk = R_disk * np.sin(Theta_disk); Z_disk = np.zeros_like(X_disk)
+                    
+                    # 吸积盘颜色按距离衰减
+                    Intensity = 1 / (R_disk**1.5)
+                    colors = plt.get_cmap(disk_cmap)(Intensity / np.max(Intensity))
+                    ax.plot_surface(X_disk, Y_disk, Z_disk, facecolors=colors, alpha=0.7, shade=False)
+                    
+                    max_range = Rs_val * 3
+                    ax.set_xlim([-max_range, max_range]); ax.set_ylim([-max_range, max_range]); ax.set_zlim([-max_range, max_range])
+                    
+                    st.pyplot(fig)
+                    st.caption(f"🔮 **事件视界边界 (史瓦西半径):** `{Rs_val:.4e} 米`")
+                        
+                except Exception as e: st.error(f"输入格式有误或数值溢出: {e}")
