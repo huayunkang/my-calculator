@@ -770,373 +770,322 @@ with tab_line:
             st.error("计算失败！请确保参数使用了变量 t。")
 
 # ==========================================
-# 第十页：物理引擎 (群星闪耀的物理学法则)
+# 第十页：物理引擎 (量子与宇宙终极法则 Ultra 版)
 # ==========================================
 with tab_physics:
-    st.markdown("### 🌌 宇宙真理解析引擎 (Physics Engine)")
+    st.markdown("### 🌌 宇宙真理解析引擎 (Physics Engine Quantum Plus)")
     
-    # 一级菜单：选择物理学大类
+    # 一级菜单：选择物理学分支
     domain = st.selectbox("📚 请选择物理学领域:", [
         "🍎 经典力学 (Classical Mechanics)", 
-        "🔥 热力学与统计物理 (Thermodynamics)", 
+        "🔥 热力学与统计物理 (Thermodynamics & Statistical)", 
         "⚡ 电磁学 (Electromagnetism)", 
-        "🚀 近代物理 (Modern Physics)"
+        "🚀 近代物理 & 量子力学 (Modern & Quantum)"
     ])
     
     st.markdown("---")
 
     # ==========================================
-    # 🍎 经典力学 (深度扩展大物考点)
+    # 🍎 经典力学 (含流体力学)
     # ==========================================
     if "力学" in domain:
-        mech_sub = st.radio("⚙️ 选择力学子领域:", [
-            "📍 运动学 (Kinematics)", 
-            "⚙️ 动力学基础 (Dynamics)", 
-            "💥 动量与冲量 (Momentum)", 
-            "🎢 功与能 (Work & Energy)"
+        mech_sub = st.radio("⚙️ 选择定律分类:", [
+            "动力学基础 (Newton/Hooke)",
+            "抛体运动轨迹 (可视化作图)",
+            "【纳维-斯托克斯】流体力学方程" # 🌟 新增：NS 方程概念展示
         ], horizontal=True)
-        
-        # ------------------------------------------
-        # 📍 运动学
-        # ------------------------------------------
-        if "运动学" in mech_sub:
-            creator = st.selectbox("选择运动模型:", ["🚗 匀变速直线运动 (图表可视化)", "☄️ 抛体运动方程 (图表可视化)"])
-            
-            if "匀变速" in creator:
-                st.markdown("#### 🚗 匀变速直线运动")
-                st.info("公式: $v = v_0 + at, \\quad x = x_0 + v_0 t + \\frac{1}{2} a t^2$")
-                
-                c1, c2, c3 = st.columns(3)
-                v0_str = c1.text_input("初速度 $v_0$ (m/s):", value="0", key="kin_v0")
-                a_str = c2.text_input("加速度 $a$ (m/s²):", value="2", key="kin_a")
-                t_str = c3.text_input("运动时间 $t$ (s):", value="5", key="kin_t")
-                
-                if st.button("📊 计算并生成运动图表"):
-                    try:
-                        v0, a, t_end = float(sp.sympify(v0_str)), float(sp.sympify(a_str)), float(sp.sympify(t_str))
-                        v_final = v0 + a * t_end
-                        x_final = v0 * t_end + 0.5 * a * t_end**2
-                        
-                        st.success(f"计算完成！末速度: {v_final:.2f} m/s, 总位移: {x_final:.2f} m")
-                        
-                        # 绘图
-                        if dark_mode:
-                            plt.style.use('dark_background')
-                            c_v, c_x = '#00FFFF', '#FF00FF'
-                        else:
-                            plt.style.use('default')
-                            c_v, c_x = '#1f77b4', '#ff7f0e'
-                            
-                        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
-                        fig.patch.set_alpha(0.0)
-                        ax1.patch.set_alpha(0.0); ax2.patch.set_alpha(0.0)
-                        
-                        t_vals = np.linspace(0, t_end, 100)
-                        v_vals = v0 + a * t_vals
-                        x_vals = v0 * t_vals + 0.5 * a * t_vals**2
-                        
-                        ax1.plot(t_vals, v_vals, color=c_v, lw=3); ax1.set_title("v-t 速度时间图", color=c_v)
-                        ax1.fill_between(t_vals, v_vals, alpha=0.2, color=c_v)
-                        ax1.grid(True, alpha=0.3)
-                        
-                        ax2.plot(t_vals, x_vals, color=c_x, lw=3); ax2.set_title("x-t 位移时间图", color=c_x)
-                        ax2.grid(True, alpha=0.3)
-                        
-                        st.pyplot(fig)
-                    except: st.error("输入有误，图表渲染需要确切数值。")
 
-            elif "抛体运动" in creator:
-                st.markdown("#### ☄️ 抛体运动方程 (Projectile Motion)")
-                st.info("公式: $x(t) = v_0 \\cos(\\theta) t, \\quad y(t) = v_0 \\sin(\\theta) t - \\frac{1}{2}gt^2$")
-                
-                pc1, pc2, pc3 = st.columns(3)
-                v0_str = pc1.text_input("初速度 $v_0$ (m/s):", value="20", key="proj_v0")
-                theta_str = pc2.text_input("发射角 $\\theta$ (°):", value="45", key="proj_theta")
-                g_str = pc3.text_input("重力加速度 $g$ (m/s²):", value="9.8", key="proj_g")
-                
-                if st.button("☄️ 绘制抛体轨迹"):
-                    try:
-                        v0 = float(sp.sympify(v0_str).evalf())
-                        theta_deg = float(sp.sympify(theta_str).evalf())
-                        g_val = float(sp.sympify(g_str).evalf())
-                        theta_rad = np.radians(theta_deg)
-                        
-                        t_flight = 2 * v0 * np.sin(theta_rad) / g_val
-                        h_max = (v0 * np.sin(theta_rad))**2 / (2 * g_val)
-                        x_range = v0**2 * np.sin(2 * theta_rad) / g_val
-                        
-                        if dark_mode:
-                            plt.style.use('dark_background')
-                            line_color = '#00ffcc' 
-                        else:
-                            plt.style.use('default')
-                            line_color = '#FF4B2B' 
-                            
-                        fig, ax = plt.subplots(figsize=(8, 4))
-                        fig.patch.set_alpha(0.0)
-                        ax.patch.set_alpha(0.0)
-                        
-                        t_vals = np.linspace(0, t_flight, 200)
-                        x_vals = v0 * np.cos(theta_rad) * t_vals
-                        y_vals = v0 * np.sin(theta_rad) * t_vals - 0.5 * g_val * t_vals**2
-                        
-                        ax.plot(x_vals, y_vals, color=line_color, linewidth=3)
-                        ax.fill_between(x_vals, y_vals, alpha=0.2, color=line_color) 
-                        ax.set_xlabel("水平距离 X (m)", color=line_color)
-                        ax.set_ylabel("竖直高度 Y (m)", color=line_color)
-                        ax.set_ylim(bottom=0) 
-                        ax.grid(True, linestyle='--', alpha=0.3)
-                        st.pyplot(fig)
-                        
-                        with st.expander("👀 查看飞行参数", expanded=True):
-                            st.markdown(f"**⏱️ 飞行时间:** `{t_flight:.2f} s` | **⛰️ 最大高度:** `{h_max:.2f} m` | **🎯 最远射程:** `{x_range:.2f} m`")
-                    except: st.error("绘制轨迹失败！请确保输入确切数值。")
-
-        # ------------------------------------------
-        # ⚙️ 动力学
-        # ------------------------------------------
-        elif "动力学" in mech_sub:
-            creator = st.selectbox("选择动力学定律:", ["🌍 万有引力定律", "🏃 牛顿第二定律", "🪀 胡克定律 (弹力)", "🛹 滑动摩擦力定律"])
+        if "动力学" in mech_sub:
+            creator = st.selectbox("🧑‍🔬 选择定律与提出者:", [
+                "【牛顿】万有引力", "【牛顿】牛顿第二定律", "【胡克】胡克定律", "【阿蒙顿】滑动摩擦力"
+            ])
             
             if "万有引力" in creator:
                 st.info("公式: $F = G \\frac{m_1 m_2}{r^2}$")
-                col1, col2, col3 = st.columns(3)
-                m1_str = col1.text_input("质量 $m_1$ (kg):", value="5.97e24", key="g_m1") 
-                m2_str = col2.text_input("质量 $m_2$ (kg):", value="70", key="g_m2") 
-                r_str = col3.text_input("距离 $r$ (m):", value="6.371e6", key="g_r") 
-                if st.button("🚀 计算万有引力"):
-                    try:
-                        m1, m2, r = sp.sympify(m1_str), sp.sympify(m2_str), sp.sympify(r_str)
-                        G = sp.sympify("6.6743e-11")
-                        F = G * (m1 * m2) / (r**2)
-                        st.success("推导完成！")
-                        st.latex(f"F = {sp.latex(sp.simplify(F))} \\text{{ N}}")
+                c1, c2, c3 = st.columns(3)
+                m1_str, m2_str, r_str = c1.text_input("质量 $m_1$ (kg):", value="5.97e24", key="g_m1"), c2.text_input("质量 $m_2$ (kg):", value="70", key="g_m2"), c3.text_input("距离 $r$ (m):", value="6.371e6", key="g_r")
+                if st.button("🚀 计算万有引力", key="btn_g"):
+                    try: F = sp.sympify("6.6743e-11") * (sp.sympify(m1_str) * sp.sympify(m2_str)) / (sp.sympify(r_str)**2); st.latex(f"F = {sp.latex(sp.simplify(F))} \\text{{ N}}"); st.info(f"**近似数值:** `{float(F.evalf()):.4e} N`")
                     except: st.error("输入格式有误！")
-            
             elif "第二定律" in creator:
                 st.info("公式: $F = m a$")
-                col1, col2 = st.columns(2)
-                m_str = col1.text_input("质量 $m$ (kg):", value="10", key="n2_m")
-                a_str = col2.text_input("加速度 $a$ (m/s²):", value="9.8", key="n2_a")
-                if st.button("🚀 计算合外力"):
-                    try:
-                        m, a = sp.sympify(m_str), sp.sympify(a_str)
-                        st.success("推导完成！")
-                        st.latex(f"F = {sp.latex(m * a)} \\text{{ N}}")
+                c1, c2 = st.columns(2)
+                m_str, a_str = c1.text_input("质量 $m$ (kg):", value="10", key="n2_m"), c2.text_input("加速度 $a$ (m/s²):", value="9.8", key="n2_a")
+                if st.button("🚀 计算合外力", key="btn_n2"):
+                    try: F = sp.sympify(m_str) * sp.sympify(a_str); st.latex(f"F = {sp.latex(sp.simplify(F))} \\text{{ N}}")
                     except: st.error("输入有误！")
-                    
             elif "胡克" in creator:
                 st.info("公式: $F = -k x$")
-                col1, col2 = st.columns(2)
-                k_str = col1.text_input("劲度系数 $k$ (N/m):", value="500", key="hk_k")
-                x_str = col2.text_input("形变量 $x$ (m):", value="0.2", key="hk_x")
-                if st.button("🚀 计算弹力"):
-                    try:
-                        st.success("推导完成！")
-                        st.latex(f"|F| = {sp.latex(sp.sympify(k_str) * sp.sympify(x_str))} \\text{{ N}}")
+                c1, c2 = st.columns(2)
+                k_str, x_str = c1.text_input("劲度系数 $k$ (N/m):", value="500", key="hk_k"), c2.text_input("形变量 $x$ (m):", value="0.2", key="hk_x")
+                if st.button("🚀 计算弹力", key="btn_hk"):
+                    try: st.latex(f"|F| = {sp.latex(sp.sympify(k_str) * sp.sympify(x_str))} \\text{{ N}}")
                     except: st.error("输入有误！")
-                    
             elif "摩擦力" in creator:
                 st.info("公式: $f = \\mu F_N$")
-                col1, col2 = st.columns(2)
-                mu_str = col1.text_input("动摩擦因数 $\\mu$:", value="0.3", key="fr_mu")
-                fn_str = col2.text_input("正压力 $F_N$ (N):", value="98", key="fr_fn")
-                if st.button("🚀 计算摩擦力"):
-                    try:
-                        st.success("推导完成！")
-                        st.latex(f"f = {sp.latex(sp.sympify(mu_str) * sp.sympify(fn_str))} \\text{{ N}}")
+                c1, c2 = st.columns(2)
+                mu_str, fn_str = c1.text_input("摩擦因数 $\\mu$:", value="0.3", key="fr_mu"), c2.text_input("正压力 $F_N$ (N):", value="98", key="fr_fn")
+                if st.button("🚀 计算摩擦力", key="btn_fr"):
+                    try: st.latex(f"f = {sp.latex(sp.sympify(mu_str) * sp.sympify(fn_str))} \\text{{ N}}")
                     except: st.error("输入有误！")
 
-        # ------------------------------------------
-        # 💥 动量与冲量
-        # ------------------------------------------
-        elif "动量" in mech_sub:
-            st.markdown("#### 💥 动量守恒定律 (碰撞模型)")
-            st.info("公式: $m_1 v_{10} + m_2 v_{20} = m_1 v_1 + m_2 v_2$")
-            
-            col_m1, col_v1 = st.columns(2)
-            m1 = col_m1.text_input("物体1 质量 $m_1$ (kg):", value="2", key="mom_m1")
-            v1 = col_v1.text_input("物体1 初速度 $v_{10}$ (m/s):", value="5", key="mom_v1")
-            
-            col_m2, col_v2 = st.columns(2)
-            m2 = col_m2.text_input("物体2 质量 $m_2$ (kg):", value="3", key="mom_m2")
-            v2 = col_v2.text_input("物体2 初速度 $v_{20}$ (m/s):", value="-2", key="mom_v2")
-            
-            col_type, col_btn = st.columns([2, 1])
-            ctype = col_type.radio("碰撞类型:", ["完全非弹性碰撞 (粘在一起)", "完全弹性碰撞 (无能量损失)"])
-            
-            if st.button("💥 模拟碰撞求解末速度"):
+        elif "抛体运动" in mech_sub:
+            st.markdown("#### ☄️ 抛体运动可视化引擎")
+            st.info("公式: $x(t) = v_0 \\cos(\\theta) t, \\quad y(t) = v_0 \\sin(\\theta) t - \\frac{1}{2}gt^2$")
+            pc1, pc2, pc3 = st.columns(3)
+            v0_s, t_s, g_s = pc1.text_input("初速度 $v_0$ (m/s):", value="20", key="pr_v0"), pc2.text_input("发射角 $\\theta$ (°):", value="45", key="pr_theta"), pc3.text_input("重力加速 $g$:", value="9.8", key="pr_g")
+            if st.button("☄️ 绘制轨迹", key="btn_pr"):
                 try:
-                    sm1, sv1, sm2, sv2 = sp.sympify(m1), sp.sympify(v1), sp.sympify(m2), sp.sympify(v2)
-                    p_total = sm1*sv1 + sm2*sv2
-                    
-                    if "非弹性" in ctype:
-                        vf = p_total / (sm1 + sm2)
-                        st.success("计算完成！两者粘合以共同速度运动。")
-                        st.latex(f"v_{{共}} = {sp.latex(vf.evalf(4))} \\text{{ m/s}}")
-                    else:
-                        # 弹性碰撞公式推导
-                        vf1 = ((sm1 - sm2)*sv1 + 2*sm2*sv2) / (sm1 + sm2)
-                        vf2 = ((sm2 - sm1)*sv2 + 2*sm1*sv1) / (sm1 + sm2)
-                        st.success("计算完成！动量与动能双重守恒。")
-                        st.latex(f"v_1' = {sp.latex(vf1.evalf(4))} \\text{{ m/s}}")
-                        st.latex(f"v_2' = {sp.latex(vf2.evalf(4))} \\text{{ m/s}}")
-                except: st.error("计算失败，请输入有效数值！")
+                    v0, theta, g_v = float(sp.sympify(v0_s)), float(sp.sympify(t_s)), float(sp.sympify(g_s)); theta_rad = np.radians(theta)
+                    t_flight = 2 * v0 * np.sin(theta_rad) / g_v
+                    if dark_mode: plt.style.use('dark_background'); line_color = '#00ffcc'
+                    else: plt.style.use('default'); line_color = '#FF4B2B'
+                    fig, ax = plt.subplots(figsize=(8, 4)); fig.patch.set_alpha(0.0); ax.patch.set_alpha(0.0); t_vals = np.linspace(0, t_flight, 200)
+                    x_v, y_v = v0 * np.cos(theta_rad) * t_vals, v0 * np.sin(theta_rad) * t_vals - 0.5 * g_v * t_vals**2
+                    ax.plot(x_v, y_v, color=line_color, lw=3); ax.fill_between(x_v, y_v, alpha=0.2, color=line_color); ax.set_xlabel("X (m)", color=line_color); ax.set_ylabel("Y (m)", color=line_color); ax.set_ylim(bottom=0); ax.grid(True, linestyle='--', alpha=0.3)
+                    st.pyplot(fig); st.info(f"射程: `{x_v[-1]:.2f} 米`, 最大高度: `{np.max(y_v):.2f} 米`")
+                except: st.error("作图失败！请确保输入确切数值。")
 
-        # ------------------------------------------
-        # 🎢 功与能
-        # ------------------------------------------
-        elif "功与能" in mech_sub:
-            st.markdown("#### 🎢 机械能分布可视化系统")
-            st.info("计算物体的动能 $E_k$、重力势能 $E_{pg}$ 与 弹性势能 $E_{pe}$")
-            
-            e1, e2, e3 = st.columns(3)
-            m_e = e1.text_input("质量 $m$ (kg):", value="2", key="en_m")
-            v_e = e2.text_input("瞬时速度 $v$ (m/s):", value="10", key="en_v")
-            h_e = e3.text_input("相对高度 $h$ (m):", value="5", key="en_h")
-            
-            e4, e5, e6 = st.columns(3)
-            k_e = e4.text_input("弹簧劲度系数 $k$:", value="0", key="en_k")
-            x_e = e5.text_input("弹簧形变量 $x$ (m):", value="0", key="en_x")
-            g_e = e6.text_input("重力加速度 $g$:", value="9.8", key="en_g")
-            
-            if st.button("📊 生成机械能分布图柱"):
-                try:
-                    sm, sv, sh = float(sp.sympify(m_e)), float(sp.sympify(v_e)), float(sp.sympify(h_e))
-                    sk, sx, sg = float(sp.sympify(k_e)), float(sp.sympify(x_e)), float(sp.sympify(g_e))
-                    
-                    ek = 0.5 * sm * sv**2
-                    epg = sm * sg * sh
-                    epe = 0.5 * sk * sx**2
-                    e_total = ek + epg + epe
-                    
-                    if dark_mode:
-                        plt.style.use('dark_background')
-                        colors = ['#FF4B2B', '#00FFFF', '#7B2FF7'] # 赛博配色
-                        text_c = 'white'
-                    else:
-                        plt.style.use('default')
-                        colors = ['#ff7f0e', '#1f77b4', '#2ca02c']
-                        text_c = 'black'
-                        
-                    fig, ax = plt.subplots(figsize=(6, 4))
-                    fig.patch.set_alpha(0.0)
-                    ax.patch.set_alpha(0.0)
-                    
-                    labels = ['Kinetic ($E_k$)', 'Grav. Potential ($E_{pg}$)', 'Elastic Potential ($E_{pe}$)']
-                    values = [ek, epg, epe]
-                    
-                    bars = ax.bar(labels, values, color=colors, alpha=0.8)
-                    ax.set_ylabel("Energy (Joules)", color=text_c)
-                    ax.set_title(f"Total Mechanical Energy: {e_total:.2f} J", color=text_c)
-                    
-                    # 在柱状图上显示数值
-                    for bar in bars:
-                        yval = bar.get_height()
-                        ax.text(bar.get_x() + bar.get_width()/2, yval + (e_total*0.02), f'{yval:.1f} J', ha='center', va='bottom', color=text_c, fontweight='bold')
-                        
-                    st.pyplot(fig)
-                except: st.error("渲染失败！确保输入了数值形式的参数。")
+        elif "纳维" in mech_sub:
+            st.markdown("#### 🌊 纳维-斯托克斯方程 (Navier-Stokes Equations)")
+            st.warning("⚠️ 这是千禧年七大数学难题之一，本模块仅用于展示其矢量形式，目前人类尚无通用代数解。")
+            st.markdown("**对于不可压缩流体:**")
+            st.latex("\\rho \\left( \\frac{\\partial \\mathbf{u}}{\\partial t} + (\\mathbf{u} \\cdot \\nabla) \\mathbf{u} \\right) = -\\nabla p + \\mu \\nabla^2 \\mathbf{u} + \\mathbf{f}")
+            with st.expander("👀 解析方程各项的物理含义"):
+                st.markdown("**左边**：惯性力。其中 $\\rho$ 是流体密度，$\\partial \\mathbf{u}/\\partial t$ 是局部加速度，$(\\mathbf{u} \\cdot \\nabla) \\mathbf{u}$ 是平流（对流）加速度。")
+                st.markdown("**右边**：作用在流体上的外力。其中 $-\\nabla p$ 是压力梯度力（流体从高压流向低压），$\\mu \\nabla^2 \\mathbf{u}$ 是粘滞力（流体的摩擦力，$\\mu$ 为粘度），$\\mathbf{f}$ 是体积力（如重力）。")
 
     # ==========================================
-    # 🔥 热力学与统计物理
+    # 🔥 热力学与统计物理 (含熵增可视化)
     # ==========================================
     elif "热力学" in domain:
-        creator = st.radio("🧑‍🔬 选择定律:", ["【克拉珀龙】理想气体状态方程", "【斯特藩-玻尔兹曼】黑体辐射定律"], horizontal=True)
+        creator = st.radio("🧑‍🔬 选择定律:", [
+            "【克拉珀龙】理想气体状态方程", 
+            "【斯特藩-玻尔兹曼】黑体辐射定律",
+            "【克劳修斯】热力学第二定律 (熵增)" # 🌟 新增：熵增作图
+        ], horizontal=True)
         
         if "理想气体" in creator:
             st.info("公式: $P = \\frac{nRT}{V}$")
             col1, col2, col3 = st.columns(3)
-            n_str = col1.text_input("物质的量 $n$ (mol):", value="1", key="ig_n")
-            T_str = col2.text_input("绝对温度 $T$ (K):", value="298.15", key="ig_T")
-            V_str = col3.text_input("体积 $V$ (m³):", value="0.0224", key="ig_V")
-            if st.button("🔥 计算气体压强"):
-                try:
-                    n_val, T_val, V_val = sp.sympify(n_str), sp.sympify(T_str), sp.sympify(V_str)
-                    R = sp.sympify("8.314") 
-                    P = (n_val * R * T_val) / V_val
-                    st.success("推导完成！")
-                    st.latex(f"P = {sp.latex(sp.simplify(P))} \\text{{ Pa}}")
+            n_str, T_str, V_str = col1.text_input("物质的量 $n$ (mol):", value="1", key="ig_n"), col2.text_input("绝对温度 $T$ (K):", value="298.15", key="ig_T"), col3.text_input("体积 $V$ (m³):", value="0.0224", key="ig_V")
+            if st.button("🔥 计算压强", key="btn_ig"):
+                try: P = (sp.sympify(n_str) * sp.sympify("8.314") * sp.sympify(T_str)) / sp.sympify(V_str); st.latex(f"P = {sp.latex(sp.simplify(P))} \\text{{ Pa}}")
                 except: st.error("输入有误！")
-                
         elif "黑体" in creator:
             st.info("公式: $j^{\\star} = \\sigma T^4$")
-            T_str = st.text_input("黑体绝对温度 $T$ (K):", value="5778", key="sb_T") 
-            if st.button("🔥 计算辐射功率出射度"):
-                try:
-                    T_val = sp.sympify(T_str)
-                    sigma = sp.sympify("5.670374e-8") 
-                    j = sigma * (T_val**4)
-                    st.success("推导完成！")
-                    st.latex(f"j^{{\\star}} = {sp.latex(sp.simplify(j))} \\text{{ W/m}}^2")
+            T_str = st.text_input("绝对温度 $T$ (K):", value="5778", key="sb_T") 
+            if st.button("🔥 计算辐射出射度", key="btn_sb"):
+                try: j = sp.sympify("5.67037e-8") * (sp.sympify(T_str)**4); st.latex(f"j^{{\\star}} \\approx {float(j.evalf()):.4e} \\text{{ W/m}}^2")
                 except: st.error("输入有误！")
+                
+        elif "熵增" in creator:
+            st.markdown("#### 🔥 热力学第二定律 (The Second Law: Entropy Increase)")
+            st.info("克劳修斯表述: 热量不能自发地从低温物体传递到高温物体。孤立系统的熵总是趋于增加：$\\Delta S \\ge 0$")
+            st.markdown("**熵增过程可视化 (模拟绝热膨胀/混合):**")
+            n_atoms = st.slider("选择孤立系统中粒子数量:", 20, 200, 50, key="ent_atoms")
+            if st.button("📊 发动熵增魔法 (作图)", key="btn_ent"):
+                if dark_mode: plt.style.use('dark_background'); line_color = '#FF4B2B'; fill_color = '#7B2FF7'
+                else: plt.style.use('default'); line_color = '#FF7F0e'; fill_color = '#1f77b4'
+                fig, ax = plt.subplots(figsize=(8, 4)); fig.patch.set_alpha(0.0); ax.patch.set_alpha(0.0)
+                # 模拟粒子扩散过程中的统计熵 (S = k*ln(W))
+                time_steps = 100
+                particles = np.random.rand(n_atoms, 2) # 初始粒子堆积在左侧
+                particles[:, 0] *= 0.1 # 初始化x范围在0-0.1
+                entropy_vals = []
+                # 统计每一步粒子在左右两半的分布，计算状态数W和熵S
+                bins = np.array([0.0, 0.5, 1.0])
+                kB = 1.38065e-23
+                for t in range(time_steps):
+                    particles[:, 0] += np.random.randn(n_atoms) * 0.01 + 0.005 # 向右扩散
+                    particles[:, 0] = np.clip(particles[:, 0], 0, 1) # 限制在容器内
+                    particles[:, 1] += np.random.randn(n_atoms) * 0.01 
+                    particles[:, 1] = np.clip(particles[:, 1], 0, 1)
+                    # 统计左右粒子数
+                    n_left = np.sum(particles[:, 0] < 0.5)
+                    n_right = n_atoms - n_left
+                    # 状态数W = n! / (nL! * nR!)
+                    W = sp.factorial(n_atoms) / (sp.factorial(n_left) * sp.factorial(n_right))
+                    S = kB * np.log(float(W)) # 这里由于W太大了，需要特殊处理
+                    entropy_vals.append(float(S))
+                ax.plot(np.arange(time_steps), entropy_vals, color=line_color, lw=3, label="系统统计熵 $S(t)$")
+                ax.fill_between(np.arange(time_steps), entropy_vals, alpha=0.2, color=fill_color)
+                ax.set_xlabel("系统演化时间 $t$", color=line_color); ax.set_ylabel("系统统计熵 $S$ (J/K)", color=line_color); ax.grid(True, linestyle='--', alpha=0.3); ax.legend()
+                st.pyplot(fig)
+                st.success(f"模拟完成！初始熵: {entropy_vals[0]:.2e}, 最终熵: {entropy_vals[-1]:.2e}，系统自发由有序变为无序。")
 
     # ==========================================
     # ⚡ 电磁学
     # ==========================================
     elif "电磁" in domain:
         creator = st.radio("🧑‍🔬 选择定律:", ["【库仑】库仑定律", "【安培】安培力公式", "【法拉第】电磁感应定律"], horizontal=True)
-        
         if "库仑" in creator:
             st.info("公式: $F = k_e \\frac{q_1 q_2}{r^2}$")
             col1, col2, col3 = st.columns(3)
-            q1_str = col1.text_input("电荷 $q_1$ (C):", value="1e-6", key="cb_q1")
-            q2_str = col2.text_input("电荷 $q_2$ (C):", value="1e-6", key="cb_q2")
-            r_str = col3.text_input("距离 $r$ (m):", value="0.1", key="cb_r")
-            if st.button("⚡ 计算库仑力"):
-                try:
-                    q1, q2, r = sp.sympify(q1_str), sp.sympify(q2_str), sp.sympify(r_str)
-                    k_e = sp.sympify("8.98755e9") 
-                    F = k_e * (q1 * q2) / (r**2)
-                    st.success("推导完成！")
-                    if F.is_number: st.latex(f"F \\approx {float(F.evalf()):.4e} \\text{{ N}}")
-                    else: st.latex(f"F = {sp.latex(sp.simplify(F))} \\text{{ N}}")
+            q1_s, q2_s, r_s = col1.text_input("电荷 $q_1$ (C):", value="1e-6", key="cb_q1"), col2.text_input("电荷 $q_2$ (C):", value="1e-6", key="cb_q2"), col3.text_input("距离 $r$ (m):", value="0.1", key="cb_r")
+            if st.button("⚡ 计算库仑力", key="btn_cb"):
+                try: F = sp.sympify("8.98755e9") * (sp.sympify(q1_s) * sp.sympify(q2_s)) / (sp.sympify(r_s)**2); st.latex(f"F \\approx {float(F.evalf()):.4e} \\text{{ N}}")
                 except: st.error("输入有误！")
-                
         elif "安培" in creator:
             st.info("公式: $F = B I L \\sin(\\theta)$")
-            col1, col2, col3, col4 = st.columns(4)
-            B_str = col1.text_input("磁场 $B$ (T):", value="0.5", key="am_B")
-            I_str = col2.text_input("电流 $I$ (A):", value="2", key="am_I")
-            L_str = col3.text_input("导线 $L$ (m):", value="1", key="am_L")
-            theta_str = col4.text_input("夹角 $\\theta$ (°):", value="90", key="am_t")
-            if st.button("⚡ 计算安培力"):
-                try:
-                    B, I_val, L, theta_deg = sp.sympify(B_str), sp.sympify(I_str), sp.sympify(L_str), sp.sympify(theta_str)
-                    theta_rad = theta_deg * sp.pi / 180
-                    F = B * I_val * L * sp.sin(theta_rad)
-                    st.success("推导完成！")
-                    st.latex(f"F = {sp.latex(sp.simplify(F))} \\text{{ N}}")
+            c1, c2, c3, c4 = st.columns(4)
+            B_s, I_s, L_s, t_s = c1.text_input("磁场 $B$ (T):", value="0.5", key="am_B"), c2.text_input("电流 $I$ (A):", value="2", key="am_I"), c3.text_input("长度 $L$ (m):", value="1", key="am_L"), c4.text_input("夹角 $\\theta$ (°):", value="90", key="am_t")
+            if st.button("⚡ 计算安培力", key="btn_am"):
+                try: F = sp.sympify(B_s) * sp.sympify(I_s) * sp.sympify(L_s) * sp.sin(sp.sympify(t_s) * sp.pi / 180); st.latex(f"F = {sp.latex(sp.simplify(F))} \\text{{ N}}")
                 except: st.error("输入有误！")
-
         elif "法拉第" in creator:
             st.info("公式: $\\mathcal{E} = -N \\frac{\\Delta \\Phi}{\\Delta t}$")
-            col1, col2, col3 = st.columns(3)
-            N_str = col1.text_input("线圈匝数 $N$:", value="100", key="fa_N")
-            dPhi_str = col2.text_input("磁通变化 $\\Delta \\Phi$ (Wb):", value="0.05", key="fa_dPhi")
-            dt_str = col3.text_input("时间变化 $\\Delta t$ (s):", value="0.1", key="fa_dt")
-            if st.button("⚡ 计算感应电动势"):
-                try:
-                    N, dPhi, dt = sp.sympify(N_str), sp.sympify(dPhi_str), sp.sympify(dt_str)
-                    E = N * (dPhi / dt) 
-                    st.success("推导完成！")
-                    st.latex(f"|\\mathcal{{E}}| = {sp.latex(E)} \\text{{ V}}")
+            c1, c2, c3 = st.columns(3)
+            N_s, dp_s, dt_s = c1.text_input("线圈匝数 $N$:", value="100", key="fa_N"), c2.text_input("磁通变化 $\\Delta \\Phi$ (Wb):", value="0.05", key="fa_dPhi"), c3.text_input("时间变化 $\\Delta t$ (s):", value="0.1", key="fa_dt")
+            if st.button("⚡ 计算电动势", key="btn_fa"):
+                try: E = sp.sympify(N_s) * (sp.sympify(dp_s) / sp.sympify(dt_s)); st.latex(f"|\\mathcal{{E}}| = {sp.latex(E)} \\text{{ V}}")
                 except: st.error("输入有误！")
 
     # ==========================================
-    # 🚀 近代物理
+    # 🚀 近代物理 & 量子力学 (终极终极版)
     # ==========================================
     elif "近代物理" in domain:
-        creator = st.radio("🧑‍🔬 选择定律:", ["【爱因斯坦】质能等价理论"], horizontal=True)
+        creator = st.radio("🧑‍🔬 选择定律:", [
+            "【爱因斯坦】质能等价理论",
+            "【普朗克】普朗克-爱因斯坦关系 (光子能量)",
+            "【海森堡】不确定性原理 (作图可视化)", # 🌟 新增：量子力学基石
+            "【霍金】贝肯斯坦-霍金熵公式 (黑洞熵)" # 🌟 新增：宇宙学终极公式
+        ], horizontal=True)
+
         if "爱因斯坦" in creator:
+            st.markdown("#### ⚛️ 质能方程 (Mass-Energy Equivalence)")
             st.info("公式: $E = m c^2$")
-            m_str = st.text_input("湮灭质量 $m$ (kg):", value="1", key="emc_m")
-            if st.button("🚀 计算蕴含能量"):
-                try:
-                    m = sp.sympify(m_str)
-                    c = sp.sympify("299792458") 
-                    E = m * (c**2)
-                    st.success("推导完成！")
-                    st.latex(f"E = {sp.latex(sp.simplify(E))} \\text{{ J}}")
-                    if E.is_number: st.info(f"**科学计数法:** `{float(E.evalf()):.4e} J`")
+            m_s = st.text_input("湮灭质量 $m$ (kg):", value="1", key="emc_m")
+            if st.button("🚀 计算能量", key="btn_emc"):
+                try: E = sp.sympify(m_s) * (sp.sympify("299792458")**2); st.latex(f"E \\approx {float(E.evalf()):.4e} \\text{{ J}}")
                 except: st.error("输入格式有误！")
+
+        elif "普朗克" in creator:
+            st.markdown("#### ⚡ 普朗克-爱因斯坦关系 (Planck-Einstein Relation)")
+            st.info("公式: $E = h \\nu$ (描述了光子的能量 $E$ 与光子频率 $\\nu$ 的正比关系)")
+            
+            nu_str = st.text_input("请输入光子频率 $\\nu$ (Hz):", value="5e14", key="pe_nu")
+            
+            if st.button("⚡ 计算光子能量", key="btn_pe"):
+                try:
+                    nu = sp.sympify(nu_str)
+                    h = sp.sympify("6.62607e-34") # 普朗克常数
+                    E = h * nu
+                    st.success("推导完成！")
+                    with st.expander("👀 查看量子化能量推导过程", expanded=True):
+                        st.markdown("**1. 原始公式:**")
+                        st.latex("E = h \\cdot \\nu")
+                        st.markdown("**2. 代入物理量:**")
+                        st.latex(f"E = ({sp.latex(h)}) \\times ({sp.latex(nu)})")
+                        st.markdown("**3. 光子能量大写:**")
+                        st.latex(f"= {sp.latex(sp.simplify(E))} \\text{{ J}}")
+                        
+                        if nu.is_number: st.info(f"**科学计数法近似值:** `{float(E.evalf()):.4e} J`")
+                except Exception as e: st.error(f"输入格式有误: {e}")
+
+        elif "海森堡" in creator:
+            st.markdown("#### 🌀 海森堡不确定性原理 (Heisenberg Uncertainty Principle)")
+            st.info("公式: $\\Delta x \\Delta p \ge \\frac{\\hbar}{2}$ (你无法同时精确知道一个微观粒子的位置 $x$ 和动量 $p$)")
+            
+            with st.expander("👉 👉 如何理解量子不确定性?", expanded=True):
+                st.markdown("**物理内核**：这是微观世界的本性，而不是测量工具的问题。你把位置 $\\Delta x$ 压得越窄（知道得越准），动量 $\\Delta p$ 就会疯狂震荡（知道得越不准）。")
+                st.markdown("**可视化演示**：下方作图将演示一个粒子波包。你尝试压缩它的位置，看看它的动量（频率）分布会发生什么变化。")
+
+            dx_str = st.text_input("请输入预设的位置不确定性 $\\Delta x$ (m) [例: 1e-10]:", value="1e-10", key="unc_dx")
+            
+            if st.button("🌀 发动量子仿真 (作图)", key="btn_unc"):
+                try:
+                    dx = float(sp.sympify(dx_str).evalf())
+                    hbar = 1.05457e-34 # 约化普朗克常数
+                    dp_min = hbar / (2 * dx) # 最小动量不确定性
+                    
+                    st.success(f"计算完成！最小动量不确定性 $\\Delta p_{{min}}$: `{dp_min:.2e} kg·m/s`")
+                    
+                    # 🌟 量子波包仿真图绘制，深度适配暗黑/白昼主题
+                    if dark_mode:
+                        plt.style.use('dark_background')
+                        c_x, c_p, c_glow = '#00FFFF', '#FF00FF', '#7B2FF7' # 赛博 Quantum 配色
+                        text_c = 'white'
+                    else:
+                        plt.style.use('default')
+                        c_x, c_p, c_glow = '#1f77b4', '#ff7f0e', '#7b2ff7' # 活力配色
+                        text_c = 'black'
+                        
+                    fig = plt.figure(figsize=(10, 6))
+                    fig.patch.set_alpha(0.0) # 背景透明
+                    
+                    # 📍 第1子图：位置空间波包
+                    ax1 = fig.add_subplot(211)
+                    ax1.patch.set_alpha(0.0); ax1.grid(True, linestyle='--', alpha=0.3)
+                    x_vals = np.linspace(-3*dx, 3*dx, 500)
+                    # 高斯波包
+                    wave_x = np.exp(-(x_vals**2) / (4 * dx**2)) * np.cos(10 * x_vals / dx)
+                    ax1.plot(x_vals, wave_x, color=c_x, lw=2, label="粒子波包 $\\Psi(x)$")
+                    # 绘制不确定性范围
+                    ax1.fill_between(x_vals, -1, 1, where=np.abs(x_vals) < dx, color=c_glow, alpha=0.1)
+                    ax1.axvline(dx, color=c_glow, linestyle='--'); ax1.axvline(-dx, color=c_glow, linestyle='--')
+                    ax1.set_ylabel("振幅 $\\Psi(x)$", color=text_c); ax1.set_title(f"位置空间：$\\Delta x$ = {dx:.2e} m", color=text_c); ax1.legend()
+
+                    # 📍 第2子图：动量空间波包 (位置窄，动量就宽)
+                    ax2 = fig.add_subplot(212)
+                    ax2.patch.set_alpha(0.0); ax2.grid(True, linestyle='--', alpha=0.3)
+                    p_vals = np.linspace(-3*dp_min, 3*dp_min, 500)
+                    # 对应的动量高斯波包 (位置倒数的倒数)
+                    wave_p = np.exp(-(p_vals**2) / (4 * dp_min**2))
+                    ax2.plot(p_vals, wave_p, color=c_p, lw=2, label="动量分布 $\\Phi(p)$")
+                    # 绘制最小不确定性范围
+                    ax2.fill_between(p_vals, -1, 1, where=np.abs(p_vals) < dp_min, color=c_glow, alpha=0.1)
+                    ax2.axvline(dp_min, color=c_glow, linestyle='--'); ax2.axvline(-dp_min, color=c_glow, linestyle='--')
+                    ax2.set_xlabel("动量 P (kg·m/s)", color=text_c); ax2.set_ylabel("振幅 $\\Phi(p)$", color=text_c); ax2.set_title(f"动量空间：$\\Delta p \ge \\hbar/2\\Delta x$ = {dp_min:.2e}", color=text_c); ax2.legend()
+                    
+                    st.pyplot(fig)
+                    st.caption("💡 提示：你可以尝试把 $\\Delta x$ 调得更小（比如 1e-12），下方的动量波包就会瞬间变得极其宽扁（不确定性暴增）。")
+                except: st.error("量子仿真作图失败！请确保输入了数值。")
+
+        elif "霍金" in creator:
+            st.markdown("#### 🏺 贝肯斯坦-霍金熵公式 (Bekenstein-Hawking Entropy Formula)")
+            st.info("公式: $S = k_B \\frac{A}{4\\ell_P^2} = \\frac{k_B c^3 A}{4G\\hbar}$ (黑洞的熵 $S$ 正比于其视界面积 $A$)")
+            
+            with st.expander("👉 👉 这意味着什么?"):
+                st.markdown("**宇宙最强大的熵收割机**：这是物理学史上的终极联姻，它将热力学（熵 $k_B$）、近代物理（光速 $c$, 约化普朗克常数 $\\hbar$）和万有引力（引力常数 $G$）完美结合在一起。它表明，信息和热力学特性可以被编码在黑洞的表面上（全息原理的基础）。")
+                st.markdown("**极致不确定性**：黑洞不仅是引力的黑洞，也是信息的黑洞和热力学的黑洞。它拥有宇宙中已知最高、最极致的熵。")
+
+            col_1, col_2 = st.columns([2, 1])
+            input_mode = col_2.radio("选择输入方式:", ["已知视界面积 A", "已知黑洞质量 M (例: 太阳)"])
+            
+            if "面积" in input_mode:
+                A_str = col_1.text_input("请输入视界面积 $A$ (m²):", value="1.3e9", key="bh_A") # 太阳视界面积
+            else:
+                M_str = col_1.text_input("请输入黑洞质量 $M$ (kg):", value="1.989e30", key="bh_M") # 太阳质量
+            
+            if st.button("🏺 开启终极真理解析", key="btn_bh"):
+                try:
+                    kB = sp.sympify("1.38065e-23")
+                    c = sp.sympify("299792458")
+                    hbar = sp.sympify("1.05457e-34")
+                    G = sp.sympify("6.6743e-11")
+                    
+                    if "面积" in input_mode:
+                        A = sp.sympify(A_str)
+                    else:
+                        M = sp.sympify(M_str)
+                        # Schwarzschild 黑洞视界面积公式: A = 16πG²M²/c⁴
+                        A = 16 * sp.pi * (G**2) * (M**2) / (c**4)
+                        st.info(f"根据质量 $M$ 推导出的视界面积 $A \\approx$ `{float(A.evalf()):.4e}` m²")
+
+                    # 核心公式计算: S = (kB * c^3 * A) / (4 * G * hbar)
+                    S_hawking = (kB * c**3 * A) / (4 * G * hbar)
+                    
+                    st.success("终极解析完成！")
+                    with st.expander("👀 查看黑洞熵宇宙终极公式代入过程", expanded=True):
+                        st.markdown("**1. 原始公式:**")
+                        st.latex("S = \\frac{k_B \\cdot c^3 \\cdot A}{4 \\cdot G \\cdot \\hbar}")
+                        st.markdown("**2. 代入终极常数 (真理的味道):**")
+                        st.latex(f"S = \\frac{{ ({sp.latex(kB)}) \\cdot ({sp.latex(c)})^3 \\cdot ({sp.latex(A)}) }}{{ 4 \\cdot ({sp.latex(G)}) \\cdot ({sp.latex(hbar)}) }}")
+                        st.markdown("**3. 最终黑洞熵 (Joules per Kelvin):**")
+                        st.latex(f"= {sp.latex(sp.simplify(S_hawking))} \\text{{ J/K}}")
+                        
+                        if S_hawking.is_number and not S_hawking.has(sp.pi):
+                            st.warning(f"**科学计数法近似值 (爆表的熵):** `{float(S_hawking.evalf()):.4e} J/K`")
+                        
+                except Exception as e: st.error(f"输入格式有误: {e}")
