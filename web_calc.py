@@ -914,90 +914,141 @@ with tab_physics:
                 st.pyplot(fig)
                 st.success(f"模拟完成！初始熵: {entropy_vals[0]:.2e}, 最终熵: {entropy_vals[-1]:.2e}，系统自发由有序变为无序。")
 
-    # ==========================================
-    # ⚡ 电磁学
+  # ==========================================
+    # ⚡ 电磁学 (带物理曲线可视化)
     # ==========================================
     elif "电磁" in domain:
         creator = st.radio("🧑‍🔬 选择定律:", ["【库仑】库仑定律", "【安培】安培力公式", "【法拉第】电磁感应定律"], horizontal=True)
+        
         if "库仑" in creator:
             st.info("公式: $F = k_e \\frac{q_1 q_2}{r^2}$")
             col1, col2, col3 = st.columns(3)
             q1_s, q2_s, r_s = col1.text_input("电荷 $q_1$ (C):", value="1e-6", key="cb_q1"), col2.text_input("电荷 $q_2$ (C):", value="1e-6", key="cb_q2"), col3.text_input("距离 $r$ (m):", value="0.1", key="cb_r")
-            if st.button("⚡ 计算库仑力", key="btn_cb"):
-                try: F = sp.sympify("8.98755e9") * (sp.sympify(q1_s) * sp.sympify(q2_s)) / (sp.sympify(r_s)**2); st.latex(f"F \\approx {float(F.evalf()):.4e} \\text{{ N}}")
+            if st.button("⚡ 计算库仑力并作图", key="btn_cb"):
+                try:
+                    q1_v, q2_v, r_v = float(sp.sympify(q1_s)), float(sp.sympify(q2_s)), float(sp.sympify(r_s))
+                    k_e = 8.98755e9
+                    F_val = k_e * (q1_v * q2_v) / (r_v**2)
+                    st.success("推导完成！")
+                    st.latex(f"F \\approx {F_val:.4e} \\text{{ N}}")
+                    
+                    # 🌟 库仑力平方反比曲线图
+                    if dark_mode: plt.style.use('dark_background'); c_line = '#00FFFF'
+                    else: plt.style.use('default'); c_line = '#FF4B2B'
+                    fig, ax = plt.subplots(figsize=(6, 3)); fig.patch.set_alpha(0.0); ax.patch.set_alpha(0.0)
+                    r_vals = np.linspace(r_v * 0.2, r_v * 4, 100)
+                    F_vals = k_e * (q1_v * q2_v) / (r_vals**2)
+                    ax.plot(r_vals, np.abs(F_vals), color=c_line, lw=2, label="$F \propto 1/r^2$")
+                    ax.scatter([r_v], [np.abs(F_val)], color='#FF00FF', s=100, zorder=5, label="当前位置")
+                    ax.set_xlabel("距离 r (m)", color=c_line); ax.set_ylabel("受力大小 |F| (N)", color=c_line)
+                    ax.grid(True, linestyle='--', alpha=0.3); ax.legend()
+                    st.pyplot(fig)
                 except: st.error("输入有误！")
+                
         elif "安培" in creator:
             st.info("公式: $F = B I L \\sin(\\theta)$")
             c1, c2, c3, c4 = st.columns(4)
             B_s, I_s, L_s, t_s = c1.text_input("磁场 $B$ (T):", value="0.5", key="am_B"), c2.text_input("电流 $I$ (A):", value="2", key="am_I"), c3.text_input("长度 $L$ (m):", value="1", key="am_L"), c4.text_input("夹角 $\\theta$ (°):", value="90", key="am_t")
-            if st.button("⚡ 计算安培力", key="btn_am"):
-                try: F = sp.sympify(B_s) * sp.sympify(I_s) * sp.sympify(L_s) * sp.sin(sp.sympify(t_s) * sp.pi / 180); st.latex(f"F = {sp.latex(sp.simplify(F))} \\text{{ N}}")
+            if st.button("⚡ 计算安培力并作图", key="btn_am"):
+                try:
+                    B_v, I_v, L_v, t_v = float(sp.sympify(B_s)), float(sp.sympify(I_s)), float(sp.sympify(L_s)), float(sp.sympify(t_s))
+                    F_val = B_v * I_v * L_v * np.sin(np.radians(t_v))
+                    st.success("推导完成！")
+                    st.latex(f"F = {F_val:.4f} \\text{{ N}}")
+                    
+                    # 🌟 安培力角度正弦图
+                    if dark_mode: plt.style.use('dark_background'); c_line = '#FF00FF'
+                    else: plt.style.use('default'); c_line = '#1f77b4'
+                    fig, ax = plt.subplots(figsize=(6, 3)); fig.patch.set_alpha(0.0); ax.patch.set_alpha(0.0)
+                    thetas = np.linspace(0, 180, 100)
+                    Fs = B_v * I_v * L_v * np.sin(np.radians(thetas))
+                    ax.plot(thetas, Fs, color=c_line, lw=2, label="力随夹角变化 $F(\\theta)$")
+                    ax.scatter([t_v], [F_val], color='#00FFFF', s=100, zorder=5, label="当前角度")
+                    ax.set_xlabel("夹角 $\\theta$ (度)", color=c_line); ax.set_ylabel("安培力 F (N)", color=c_line)
+                    ax.grid(True, linestyle='--', alpha=0.3); ax.legend()
+                    st.pyplot(fig)
                 except: st.error("输入有误！")
+                
         elif "法拉第" in creator:
             st.info("公式: $\\mathcal{E} = -N \\frac{\\Delta \\Phi}{\\Delta t}$")
             c1, c2, c3 = st.columns(3)
-            N_s, dp_s, dt_s = c1.text_input("线圈匝数 $N$:", value="100", key="fa_N"), c2.text_input("磁通变化 $\\Delta \\Phi$ (Wb):", value="0.05", key="fa_dPhi"), c3.text_input("时间变化 $\\Delta t$ (s):", value="0.1", key="fa_dt")
+            N_s, dp_s, dt_s = c1.text_input("线圈匝数 $N$:", value="100", key="fa_N"), c2.text_input("磁通变化 $\\Delta \\Phi$ (Wb):", value="0.05", key="fa_dPhi"), c3.text_input("时间 $\\Delta t$ (s):", value="0.1", key="fa_dt")
             if st.button("⚡ 计算电动势", key="btn_fa"):
-                try: E = sp.sympify(N_s) * (sp.sympify(dp_s) / sp.sympify(dt_s)); st.latex(f"|\\mathcal{{E}}| = {sp.latex(E)} \\text{{ V}}")
+                try:
+                    N_v, dp_v, dt_v = float(sp.sympify(N_s)), float(sp.sympify(dp_s)), float(sp.sympify(dt_s))
+                    E_val = N_v * (dp_v / dt_v)
+                    st.success("推导完成！")
+                    st.latex(f"|\\mathcal{{E}}| = {E_val:.4f} \\text{{ V}}")
                 except: st.error("输入有误！")
-
- # ==========================================
-    # 🚀 近代物理 & 量子力学 (终极终极版)
+    # ==========================================
+    # 🚀 近代物理 & 量子力学 (终极带图版)
     # ==========================================
     elif "近代物理" in domain:
-        creator = st.radio("🧑‍🔬 选择定律:", [
-            "【爱因斯坦】质能等价理论",
-            "【普朗克】普朗克-爱因斯坦关系 (光子能量)",
-            "【海森堡】不确定性原理 (作图可视化)", 
-            "【霍金】贝肯斯坦-霍金熵公式 (黑洞熵)" 
-        ], horizontal=True)
+        creator = st.radio("🧑‍🔬 选择定律:", ["【爱因斯坦】质能等价", "【普朗克】光子能量", "【海森堡】不确定性原理", "【霍金】黑洞熵"], horizontal=True)
 
         if "爱因斯坦" in creator:
             st.markdown("#### ⚛️ 质能方程 (Mass-Energy Equivalence)")
             st.info("公式: $E = m c^2$")
             m_s = st.text_input("湮灭质量 $m$ (kg):", value="1", key="emc_m")
-            if st.button("🚀 计算能量", key="btn_emc"):
-                try: E = sp.sympify(m_s) * (sp.sympify("299792458")**2); st.latex(f"E \\approx {float(E.evalf()):.4e} \\text{{ J}}")
+            if st.button("🚀 计算能量当量可视化", key="btn_emc"):
+                try:
+                    m_v = float(sp.sympify(m_s))
+                    c = 299792458
+                    E_val = m_v * (c**2)
+                    st.success("推导完成！")
+                    st.latex(f"E \\approx {E_val:.4e} \\text{{ J}}")
+                    
+                    # 🌟 能量当量柱状图对比 (1吨TNT = 4.184e9 焦耳)
+                    tnt_tons = E_val / 4.184e9
+                    hiroshima_bombs = tnt_tons / 15000 # 广岛原子弹约1.5万吨TNT当量
+                    
+                    if dark_mode: plt.style.use('dark_background'); text_c = 'white'
+                    else: plt.style.use('default'); text_c = 'black'
+                    fig, ax = plt.subplots(figsize=(8, 3)); fig.patch.set_alpha(0.0); ax.patch.set_alpha(0.0)
+                    labels = ['你的质量包含的能量', '小男孩原子弹 (作对比)']
+                    values = [hiroshima_bombs, 1]
+                    ax.barh(labels, values, color=['#FF00FF', '#00FFFF'], alpha=0.8)
+                    ax.set_xlabel("等效广岛原子弹数量 (枚)", color=text_c)
+                    ax.set_xscale('log') # 使用对数坐标
+                    st.pyplot(fig)
+                    st.caption(f"💥 **直观感受:** 你输入的质量完全湮灭，相当于 `{hiroshima_bombs:.2e}` 枚广岛原子弹爆炸的能量！")
                 except: st.error("输入格式有误！")
 
         elif "普朗克" in creator:
             st.markdown("#### ⚡ 普朗克-爱因斯坦关系 (Planck-Einstein Relation)")
-            st.info("公式: $E = h \\nu$ (描述了光子的能量 $E$ 与光子频率 $\\nu$ 的正比关系)")
-            
-            nu_str = st.text_input("请输入光子频率 $\\nu$ (Hz):", value="5e14", key="pe_nu")
-            
+            st.info("公式: $E = h \\nu$")
+            nu_str = st.text_input("请输入光子频率 $\\nu$ (Hz) [可见光约 5e14]:", value="5e14", key="pe_nu")
             if st.button("⚡ 计算光子能量", key="btn_pe"):
                 try:
-                    nu = sp.sympify(nu_str)
-                    h = sp.sympify("6.62607e-34") # 普朗克常数
-                    E = h * nu
+                    nu_v = float(sp.sympify(nu_str))
+                    h = 6.62607e-34
+                    E_val = h * nu_v
                     st.success("推导完成！")
-                    with st.expander("👀 查看量子化能量推导过程", expanded=True):
-                        st.markdown("**1. 原始公式:**")
-                        st.latex("E = h \\cdot \\nu")
-                        st.markdown("**2. 代入物理量:**")
-                        st.latex(f"E = ({sp.latex(h)}) \\times ({sp.latex(nu)})")
-                        st.markdown("**3. 光子能量大写:**")
-                        st.latex(f"= {sp.latex(sp.simplify(E))} \\text{{ J}}")
-                        if nu.is_number: st.info(f"**科学计数法近似值:** `{float(E.evalf()):.4e} J`")
-                except Exception as e: st.error(f"输入格式有误: {e}")
+                    st.latex(f"E \\approx {E_val:.4e} \\text{{ J}}")
+                    
+                    # 🌟 E-nu 线性正比关系图
+                    if dark_mode: plt.style.use('dark_background'); c_line = '#00FFFF'
+                    else: plt.style.use('default'); c_line = '#FF7F0e'
+                    fig, ax = plt.subplots(figsize=(6, 3)); fig.patch.set_alpha(0.0); ax.patch.set_alpha(0.0)
+                    nu_vals = np.linspace(nu_v * 0.1, nu_v * 3, 100)
+                    E_vals = h * nu_vals
+                    ax.plot(nu_vals, E_vals, color=c_line, lw=2, label="能量-频率 关系 $E=h\\nu$")
+                    ax.scatter([nu_v], [E_val], color='#FF00FF', s=100, zorder=5, label="当前光子")
+                    ax.set_xlabel("频率 $\\nu$ (Hz)", color=c_line); ax.set_ylabel("能量 E (J)", color=c_line)
+                    ax.grid(True, linestyle='--', alpha=0.3); ax.legend()
+                    st.pyplot(fig)
+                except: st.error("输入格式有误！")
 
         elif "海森堡" in creator:
             st.markdown("#### 🌀 海森堡不确定性原理 (Heisenberg Uncertainty Principle)")
-            st.info("公式: $\\Delta x \\Delta p \ge \\frac{\\hbar}{2}$ (你无法同时精确知道一个微观粒子的位置 $x$ 和动量 $p$)")
+            st.info("公式: $\\Delta x \\Delta p \ge \\frac{\\hbar}{2}$")
+            dx_str = st.text_input("预设位置不确定性 $\\Delta x$ (m) [例: 1e-10]:", value="1e-10", key="unc_dx")
             
-            with st.expander("👉 👉 如何理解量子不确定性?", expanded=True):
-                st.markdown("**物理内核**：这是微观世界的本性，而不是测量工具的问题。你把位置 $\\Delta x$ 压得越窄（知道得越准），动量 $\\Delta p$ 就会疯狂震荡（知道得越不准）。")
-                st.markdown("**可视化演示**：下方作图将演示一个粒子波包。你尝试压缩它的位置，看看它的动量（频率）分布会发生什么变化。")
-
-            dx_str = st.text_input("请输入预设的位置不确定性 $\\Delta x$ (m) [例: 1e-10]:", value="1e-10", key="unc_dx")
-            
-            if st.button("🌀 发动量子仿真 (作图)", key="btn_unc"):
+            if st.button("🌀 发动量子仿真 (无惧刻度崩溃版)", key="btn_unc"):
                 try:
                     dx = float(sp.sympify(dx_str).evalf())
-                    hbar = 1.05457e-34 # 约化普朗克常数
-                    dp_min = hbar / (2 * dx) # 最小动量不确定性
-                    
+                    hbar = 1.05457e-34 
+                    dp_min = hbar / (2 * dx) 
                     st.success(f"计算完成！最小动量不确定性 $\\Delta p_{{min}}$: `{dp_min:.2e} kg·m/s`")
                     
                     if dark_mode:
@@ -1012,35 +1063,34 @@ with tab_physics:
                     fig = plt.figure(figsize=(10, 6))
                     fig.patch.set_alpha(0.0) 
                     
+                    # 🌟 修复版：使用归一化坐标轴防止 matplotlib 在 1e-25 时崩溃
+                    norm_vals = np.linspace(-3, 3, 500) # 统一用 -3 到 +3 的比例尺画图
+                    
                     ax1 = fig.add_subplot(211)
                     ax1.patch.set_alpha(0.0); ax1.grid(True, linestyle='--', alpha=0.3)
-                    x_vals = np.linspace(-3*dx, 3*dx, 500)
-                    wave_x = np.exp(-(x_vals**2) / (4 * dx**2)) * np.cos(10 * x_vals / dx)
-                    ax1.plot(x_vals, wave_x, color=c_x, lw=2, label="粒子波包 $\\Psi(x)$")
-                    ax1.fill_between(x_vals, -1, 1, where=np.abs(x_vals) < dx, color=c_glow, alpha=0.1)
-                    ax1.axvline(dx, color=c_glow, linestyle='--'); ax1.axvline(-dx, color=c_glow, linestyle='--')
-                    ax1.set_ylabel("振幅 $\\Psi(x)$", color=text_c); ax1.set_title(f"位置空间：$\\Delta x$ = {dx:.2e} m", color=text_c); ax1.legend()
+                    wave_x = np.exp(-(norm_vals**2) / 4) * np.cos(10 * norm_vals)
+                    ax1.plot(norm_vals, wave_x, color=c_x, lw=2, label="粒子波包 $\\Psi(x)$")
+                    ax1.fill_between(norm_vals, -1, 1, where=np.abs(norm_vals) < 1, color=c_glow, alpha=0.1)
+                    ax1.axvline(1, color=c_glow, linestyle='--'); ax1.axvline(-1, color=c_glow, linestyle='--')
+                    ax1.set_xlabel(f"位置 X (单位: $\\Delta x$ = {dx:.2e} m)", color=text_c)
+                    ax1.set_ylabel("振幅 $\\Psi(x)$", color=text_c); ax1.legend()
 
                     ax2 = fig.add_subplot(212)
                     ax2.patch.set_alpha(0.0); ax2.grid(True, linestyle='--', alpha=0.3)
-                    p_vals = np.linspace(-3*dp_min, 3*dp_min, 500)
-                    wave_p = np.exp(-(p_vals**2) / (4 * dp_min**2))
-                    ax2.plot(p_vals, wave_p, color=c_p, lw=2, label="动量分布 $\\Phi(p)$")
-                    ax2.fill_between(p_vals, -1, 1, where=np.abs(p_vals) < dp_min, color=c_glow, alpha=0.1)
-                    ax2.axvline(dp_min, color=c_glow, linestyle='--'); ax2.axvline(-dp_min, color=c_glow, linestyle='--')
-                    ax2.set_xlabel("动量 P (kg·m/s)", color=text_c); ax2.set_ylabel("振幅 $\\Phi(p)$", color=text_c); ax2.set_title(f"动量空间：$\\Delta p \ge \\hbar/2\\Delta x$ = {dp_min:.2e}", color=text_c); ax2.legend()
+                    wave_p = np.exp(-(norm_vals**2) / 4) # 动量空间没有高频震荡
+                    ax2.plot(norm_vals, wave_p, color=c_p, lw=2, label="动量分布 $\\Phi(p)$")
+                    ax2.fill_between(norm_vals, -1, 1, where=np.abs(norm_vals) < 1, color=c_glow, alpha=0.1)
+                    ax2.axvline(1, color=c_glow, linestyle='--'); ax2.axvline(-1, color=c_glow, linestyle='--')
+                    ax2.set_xlabel(f"动量 P (单位: $\\Delta p_{{min}}$ = {dp_min:.2e} kg·m/s)", color=text_c)
+                    ax2.set_ylabel("振幅 $\\Phi(p)$", color=text_c); ax2.legend()
                     
+                    plt.tight_layout()
                     st.pyplot(fig)
-                    st.caption("💡 提示：你可以尝试把 $\\Delta x$ 调得更小（比如 1e-12），下方的动量波包就会瞬间变得极其宽扁（不确定性暴增）。")
-                except: st.error("量子仿真作图失败！请确保输入了数值。")
+                except Exception as e: st.error(f"作图失败: {e}")
 
         elif "霍金" in creator:
             st.markdown("#### 🏺 贝肯斯坦-霍金熵公式 (Bekenstein-Hawking Entropy Formula)")
-            st.info("公式: $S = k_B \\frac{A}{4\\ell_P^2} = \\frac{k_B c^3 A}{4G\\hbar}$")
-            
-            with st.expander("👉 👉 这意味着什么?"):
-                st.markdown("**宇宙最强大的熵收割机**：这是物理学史上的终极联姻，它将热力学、近代物理和万有引力完美结合在一起。")
-
+            st.info("公式: $S = \\frac{k_B c^3 A}{4G\\hbar}$")
             col_1, col_2 = st.columns([2, 1])
             input_mode = col_2.radio("选择输入方式:", ["已知视界面积 A", "已知黑洞质量 M (例: 太阳)"])
             
@@ -1051,66 +1101,41 @@ with tab_physics:
             
             if st.button("🏺 开启终极真理解析", key="btn_bh"):
                 try:
-                    kB = sp.sympify("1.38065e-23")
-                    c = sp.sympify("299792458")
-                    hbar = sp.sympify("1.05457e-34")
-                    G = sp.sympify("6.6743e-11")
-                    
+                    kB, c, hbar, G = 1.38065e-23, 299792458, 1.05457e-34, 6.6743e-11
                     if "面积" in input_mode:
-                        A = sp.sympify(A_str)
-                        M = (c**2) * sp.sqrt(A / (16 * sp.pi * G**2))
+                        A = float(sp.sympify(A_str))
+                        M = (c**2) * np.sqrt(A / (16 * np.pi * G**2))
                     else:
-                        M = sp.sympify(M_str)
-                        A = 16 * sp.pi * (G**2) * (M**2) / (c**4)
-                        st.info(f"根据质量 $M$ 推导出的视界面积 $A \\approx$ `{float(A.evalf()):.4e}` m²")
+                        M = float(sp.sympify(M_str))
+                        A = 16 * np.pi * (G**2) * (M**2) / (c**4)
+                        st.info(f"推导视界面积 $A \\approx$ `{A:.4e}` m²")
 
                     S_hawking = (kB * c**3 * A) / (4 * G * hbar)
-                    
                     st.success("终极解析完成！")
-                    with st.expander("👀 查看黑洞熵宇宙终极公式代入过程", expanded=True):
-                        st.latex(f"S = \\frac{{ ({sp.latex(kB)}) \\cdot ({sp.latex(c)})^3 \\cdot ({sp.latex(A)}) }}{{ 4 \\cdot ({sp.latex(G)}) \\cdot ({sp.latex(hbar)}) }}")
-                        st.latex(f"= {sp.latex(sp.simplify(S_hawking))} \\text{{ J/K}}")
-                        if S_hawking.is_number and not S_hawking.has(sp.pi):
-                            st.warning(f"**科学计数法近似值 (爆表的熵):** `{float(S_hawking.evalf()):.4e} J/K`")
+                    st.warning(f"**爆表熵值:** `{S_hawking:.4e} J/K`")
 
-                    # 🌟 史瓦西黑洞 3D 渲染引擎
-                    Rs = 2 * G * M / (c**2)
-                    Rs_val = float(Rs.evalf())
-                    
-                    st.markdown("#### 🌌 史瓦西黑洞视界模拟图")
-                    if dark_mode:
-                        plt.style.use('dark_background')
-                        disk_cmap = 'magma'
-                    else:
-                        plt.style.use('default')
-                        disk_cmap = 'plasma'
+                    # 史瓦西黑洞 3D 渲染引擎
+                    Rs_val = 2 * G * M / (c**2)
+                    if dark_mode: plt.style.use('dark_background'); disk_cmap = 'magma'
+                    else: plt.style.use('default'); disk_cmap = 'plasma'
                         
                     fig = plt.figure(figsize=(6, 6))
                     ax = fig.add_subplot(111, projection='3d')
-                    fig.patch.set_alpha(0.0); ax.patch.set_alpha(0.0)
-                    ax.xaxis.set_pane_color((0,0,0,0)); ax.yaxis.set_pane_color((0,0,0,0)); ax.zaxis.set_pane_color((0,0,0,0))
-                    ax.axis('off') 
+                    fig.patch.set_alpha(0.0); ax.patch.set_alpha(0.0); ax.axis('off') 
                     
-                    u = np.linspace(0, 2 * np.pi, 50); v = np.linspace(0, np.pi, 50)
+                    u, v = np.linspace(0, 2 * np.pi, 50), np.linspace(0, np.pi, 50)
                     U, V = np.meshgrid(u, v)
-                    X_bh = Rs_val * np.cos(U) * np.sin(V)
-                    Y_bh = Rs_val * np.sin(U) * np.sin(V)
-                    Z_bh = Rs_val * np.cos(V)
+                    X_bh, Y_bh, Z_bh = Rs_val * np.cos(U) * np.sin(V), Rs_val * np.sin(U) * np.sin(V), Rs_val * np.cos(V)
                     ax.plot_surface(X_bh, Y_bh, Z_bh, color='black', alpha=1.0)
                     
-                    rad = np.linspace(Rs_val * 1.2, Rs_val * 3, 30)
-                    theta = np.linspace(0, 2 * np.pi, 60)
+                    rad, theta = np.linspace(Rs_val * 1.2, Rs_val * 3, 30), np.linspace(0, 2 * np.pi, 60)
                     R_disk, Theta_disk = np.meshgrid(rad, theta)
-                    X_disk = R_disk * np.cos(Theta_disk); Y_disk = R_disk * np.sin(Theta_disk); Z_disk = np.zeros_like(X_disk)
+                    X_disk, Y_disk, Z_disk = R_disk * np.cos(Theta_disk), R_disk * np.sin(Theta_disk), np.zeros_like(R_disk)
                     
                     Intensity = 1 / (R_disk**1.5)
                     colors = plt.get_cmap(disk_cmap)(Intensity / np.max(Intensity))
                     ax.plot_surface(X_disk, Y_disk, Z_disk, facecolors=colors, alpha=0.7, shade=False)
                     
-                    max_range = Rs_val * 3
-                    ax.set_xlim([-max_range, max_range]); ax.set_ylim([-max_range, max_range]); ax.set_zlim([-max_range, max_range])
-                    
+                    ax.set_xlim([-Rs_val*3, Rs_val*3]); ax.set_ylim([-Rs_val*3, Rs_val*3]); ax.set_zlim([-Rs_val*3, Rs_val*3])
                     st.pyplot(fig)
-                    st.caption(f"🔮 **事件视界边界 (史瓦西半径):** `{Rs_val:.4e} 米`")
-                        
-                except Exception as e: st.error(f"输入格式有误或数值溢出: {e}")
+                except Exception as e: st.error("作图失败，数值溢出。")
