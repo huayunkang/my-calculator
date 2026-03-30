@@ -169,6 +169,13 @@ if "math_expr" not in st.session_state:
 def add_to_expr(text): st.session_state.math_expr += text
 def clear_expr(): st.session_state.math_expr = ""
 
+# --- 解方程专属控制 ---
+if "eq_expr" not in st.session_state:
+    st.session_state.eq_expr = "x**2 - 5*x + 6 = 0"
+    
+def add_to_eq(text): st.session_state.eq_expr += text
+def clear_eq(): st.session_state.eq_expr = ""
+
 x, y, z, n, i, k, t = sp.symbols('x y z n i k t')
 
 tab_math, tab_eq, tab_sum, tab_multi, tab_linalg, tab_prog, tab_vector, tab_surface, tab_line = st.tabs(
@@ -316,10 +323,28 @@ with tab_math:
 # ------------------------------------------
 # 第二页：解方程
 # ------------------------------------------
-
 with tab_eq:
     st.markdown("### 🔍 智能方程求解器")
-    eq_str = st.text_input("请输入方程 (用逗号隔开):", value="x**2 - 5*x + 6 = 0")
+    
+    # 🌟 新增：解方程专属键盘
+    with st.expander("🎹 点击展开方程快捷键盘"):
+        # 第一排：变量与等号
+        eb1, eb2, eb3, eb4 = st.columns(4)
+        eb1.button("𝒙 (变量x)", key="eq_x", on_click=add_to_eq, args=("x",))
+        eb2.button("𝒚 (变量y)", key="eq_y", on_click=add_to_eq, args=("y",))
+        eb3.button("𝒛 (变量z)", key="eq_z", on_click=add_to_eq, args=("z",))
+        eb4.button("= (等号)", key="eq_equal", on_click=add_to_eq, args=("=",))
+
+        # 第二排：乘方、根号、分隔符、清空
+        eb5, eb6, eb7, eb8 = st.columns(4)
+        eb5.button("xʸ (** 乘方)", key="eq_pow", on_click=add_to_eq, args=("**",))
+        eb6.button("√ sqrt(", key="eq_sqrt", on_click=add_to_eq, args=("sqrt(",))
+        eb7.button(", (方程分隔符)", key="eq_comma", on_click=add_to_eq, args=(", ",))
+        eb8.button("🗑️ 清空", key="eq_clear", on_click=clear_eq)
+
+    # 🌟 注意这里：key 被绑定到了 "eq_expr"，彻底和微积分页面脱钩
+    eq_str = st.text_input("请输入方程 (用逗号隔开):", key="eq_expr")
+    
     if st.button("🚀 解方程并查看过程"):
         try:
             eq_list, standard_forms = [], []
@@ -357,7 +382,6 @@ with tab_eq:
                         sol_latex = ", \\quad ".join([f"{sp.latex(var)} = {sp.latex(val)}" for var, val in sol.items()])
                         st.latex(f"\\text{{解 }} {idx + 1}: \\quad {sol_latex}")
         except: st.error("解析失败！")
-
 # ------------------------------------------
 # 第三页：级数求和
 # ------------------------------------------
