@@ -58,7 +58,7 @@ summon_mascot()
 # 页面标题与统一开关
 # ==========================================
 st.markdown('<div class="title-text">🧮 Ultra Max 终极计算器</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle-text">保姆级微积分神器 • 风景吸猫版</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle-text">超级级微积分神器 • 风景版</div>', unsafe_allow_html=True)
 
 # 🌟 全局统一的暗黑模式开关
 dark_mode = st.toggle("🌙 一键开启星空夜景模式 (全局生效)")
