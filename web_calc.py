@@ -784,7 +784,7 @@ with tab_physics:
     
     st.markdown("---")
 
-    # ==========================================
+# ==========================================
     # 🍎 经典力学
     # ==========================================
     if "力学" in domain:
@@ -792,32 +792,31 @@ with tab_physics:
             "【艾萨克·牛顿】万有引力定律", 
             "【艾萨克·牛顿】牛顿第二定律",
             "【罗伯特·胡克】胡克定律 (弹性力)",
-            "【纪尧姆·阿蒙顿】滑动摩擦力定律"
+            "【纪尧姆·阿蒙顿】滑动摩擦力定律",
+            "【伽利略/牛顿】抛体运动轨迹" # 🌟 新增了抛体运动
         ], horizontal=True)
         
         if "万有引力" in creator:
             st.markdown("#### 🌍 万有引力定律 (Law of Universal Gravitation)")
-            st.info("公式: $F = G \\frac{m_1 m_2}{r^2}$ (任何两个有质量的物体之间都存在相互吸引力)")
+            st.info("公式: $F = G \\frac{m_1 m_2}{r^2}$")
             col1, col2, col3 = st.columns(3)
-            m1_str = col1.text_input("质量 $m_1$ (kg):", value="5.97e24", key="g_m1") # 默认地球质量
-            m2_str = col2.text_input("质量 $m_2$ (kg):", value="70", key="g_m2") # 默认一个人的质量
-            r_str = col3.text_input("距离 $r$ (m):", value="6.371e6", key="g_r") # 默认地球半径
-            
+            m1_str = col1.text_input("质量 $m_1$ (kg):", value="5.97e24", key="g_m1") 
+            m2_str = col2.text_input("质量 $m_2$ (kg):", value="70", key="g_m2") 
+            r_str = col3.text_input("距离 $r$ (m):", value="6.371e6", key="g_r") 
             if st.button("🚀 计算万有引力"):
                 try:
                     m1, m2, r = sp.sympify(m1_str), sp.sympify(m2_str), sp.sympify(r_str)
-                    G = sp.sympify("6.6743e-11") # 引力常数
+                    G = sp.sympify("6.6743e-11")
                     F = G * (m1 * m2) / (r**2)
                     st.success("推导完成！")
                     with st.expander("👀 查看万有引力推导过程", expanded=True):
                         st.latex(f"F = {sp.latex(G)} \\times \\frac{{{sp.latex(m1)} \\times {sp.latex(m2)}}}{{{sp.latex(r)}^2}}")
-                        st.latex(f"= {sp.latex(sp.simplify(F))} \\text{{ N}}")
-                        if F.is_number: st.info(f"**科学计数法近似值:** `{float(F.evalf()):.4e} N`")
+                        if F.is_number: st.info(f"**近似值:** `{float(F.evalf()):.4e} N`")
                 except: st.error("输入格式有误！")
                 
         elif "第二定律" in creator:
             st.markdown("#### 🏃 牛顿第二定律 (Newton's Second Law)")
-            st.info("公式: $F = m a$ (物体的加速度与受到的合外力成正比)")
+            st.info("公式: $F = m a$")
             col1, col2 = st.columns(2)
             m_str = col1.text_input("质量 $m$ (kg):", value="10", key="n2_m")
             a_str = col2.text_input("加速度 $a$ (m/s²):", value="9.8", key="n2_a")
@@ -832,7 +831,7 @@ with tab_physics:
                 
         elif "胡克" in creator:
             st.markdown("#### 🪀 胡克定律 (Hooke's Law)")
-            st.info("公式: $F = -k x$ (弹簧发生弹性形变时，弹力与形变量成正比)")
+            st.info("公式: $F = -k x$")
             col1, col2 = st.columns(2)
             k_str = col1.text_input("劲度系数 $k$ (N/m):", value="500", key="hk_k")
             x_str = col2.text_input("形变量 $x$ (m):", value="0.2", key="hk_x")
@@ -860,6 +859,72 @@ with tab_physics:
                         st.latex(f"f = {sp.latex(mu)} \\times {sp.latex(fn)} = {sp.latex(f)} \\text{{ N}}")
                 except: st.error("输入格式有误！")
 
+        # ==========================================
+        # 🌟 全新！抛体运动可视化引擎
+        # ==========================================
+        elif "抛体运动" in creator:
+            st.markdown("#### ☄️ 抛体运动方程 (Projectile Motion)")
+            st.info("公式: $x(t) = v_0 \\cos(\\theta) t, \\quad y(t) = v_0 \\sin(\\theta) t - \\frac{1}{2}gt^2$")
+            
+            pc1, pc2, pc3 = st.columns(3)
+            v0_str = pc1.text_input("初速度 $v_0$ (m/s):", value="20", key="proj_v0")
+            theta_str = pc2.text_input("发射角 $\\theta$ (°):", value="45", key="proj_theta")
+            g_str = pc3.text_input("重力加速度 $g$ (m/s²):", value="9.8", key="proj_g")
+            
+            if st.button("☄️ 计算飞行参数并绘制轨迹"):
+                try:
+                    # 运动作图需要确切的数值，强制转化为浮点数
+                    v0 = float(sp.sympify(v0_str).evalf())
+                    theta_deg = float(sp.sympify(theta_str).evalf())
+                    g_val = float(sp.sympify(g_str).evalf())
+                    
+                    # 角度转弧度
+                    theta_rad = np.radians(theta_deg)
+                    
+                    # 核心物理量计算
+                    t_flight = 2 * v0 * np.sin(theta_rad) / g_val
+                    h_max = (v0 * np.sin(theta_rad))**2 / (2 * g_val)
+                    x_range = v0**2 * np.sin(2 * theta_rad) / g_val
+                    
+                    st.success("🎉 轨迹测算完成！")
+                    
+                    # 🌟 轨迹图绘制，深度适配暗黑/白昼主题
+                    if dark_mode:
+                        plt.style.use('dark_background')
+                        line_color = '#00ffcc' # 赛博青
+                    else:
+                        plt.style.use('default')
+                        line_color = '#FF4B2B' # 活力橙
+                        
+                    fig, ax = plt.subplots(figsize=(8, 4))
+                    fig.patch.set_alpha(0.0) # 网页背景透明化
+                    ax.patch.set_alpha(0.0)
+                    
+                    # 模拟时间参数 t 从 0 到 落地
+                    t_vals = np.linspace(0, t_flight, 200)
+                    x_vals = v0 * np.cos(theta_rad) * t_vals
+                    y_vals = v0 * np.sin(theta_rad) * t_vals - 0.5 * g_val * t_vals**2
+                    
+                    ax.plot(x_vals, y_vals, color=line_color, linewidth=3, label=f"v0={v0}m/s, θ={theta_deg}°")
+                    ax.fill_between(x_vals, y_vals, alpha=0.2, color=line_color) # 轨迹下方填色
+                    
+                    ax.set_xlabel("水平距离 X (m)", color=line_color)
+                    ax.set_ylabel("竖直高度 Y (m)", color=line_color)
+                    ax.set_ylim(bottom=0) # 地面不能被击穿
+                    ax.grid(True, linestyle='--', alpha=0.3)
+                    ax.legend()
+                    
+                    # 展示图片
+                    st.pyplot(fig)
+                    
+                    # 展示具体数据
+                    with st.expander("👀 查看飞行物理参数详情", expanded=True):
+                        st.markdown(f"**⏱️ 飞行总时间 $T$:** `{t_flight:.2f} 秒`")
+                        st.markdown(f"**⛰️ 最大高度 $H_{{max}}$:** `{h_max:.2f} 米`")
+                        st.markdown(f"**🎯 最远射程 $R$:** `{x_range:.2f} 米`")
+                        
+                except:
+                    st.error("绘制轨迹失败！请确保你输入的是确切的数字（不能带未知的代数变量 x 等）。")
     # ==========================================
     # 🔥 热力学与统计物理
     # ==========================================
