@@ -115,48 +115,49 @@ custom_style = f"""
     }}
     p, span, label, div[data-testid="stMarkdownContainer"] {{ color: {text_color} !important; }}
     
-    /* ----- 3. 🌟 终极强杀：赛博朋克 Quantum 导航栏 ----- */
-    button[data-baseweb="tab"] {{ font-size: 16px; font-weight: bold; }}
+    /* ----- 3. 🌟 修复与重塑：极简高级玻璃态导航栏 ----- */
     
-    /* 【抹除原生黑边】强制清空 Streamlit 自带的背景和渐变蒙版 */
-    div[data-baseweb="tab-list"] > div, 
+    /* 🚨 抹除上个版本的灾难色块，所有标签恢复透明本色 */
     div[data-baseweb="tab-list"] > button {{
-        background-color: transparent !important;
-        background-image: none !important;
+        background: transparent !important;
+        border: none !important;
         box-shadow: none !important;
+        transform: none !important;
+        width: auto !important;
+        opacity: 0.6 !important;
+        transition: all 0.3s ease;
+    }}
+    
+    /* ✨ 真正的赛博高级感：仅选中的标签底部亮起青色霓虹剑，文字发光 */
+    div[data-baseweb="tab-list"] > button[aria-selected="true"] {{
+        opacity: 1 !important;
+        border-bottom: 3px solid #00FFFF !important;
+        text-shadow: 0 0 10px rgba(0, 255, 255, 0.8) !important;
     }}
 
-    /* 【点亮赛博箭头】强行接管左右滑动箭头按钮，贴上赛博发光贴图 */
-    div[data-baseweb="tab-list"] button[aria-hidden="true"],
-    div[data-baseweb="tab-list"] > button {{
-        background: linear-gradient(135deg, #FF00FF 0%, #00FFFF 100%) !important; /* 品红到青色的渐变 */
-        box-shadow: 0 0 15px #00FFFF, inset 0 0 10px #FF00FF !important; /* 内外双层发光 */
-        border: 1px solid #00FFFF !important;
-        border-radius: 10px !important;
-        opacity: 1 !important;
-        width: 35px !important;
-        transform: scale(0.9);
+    /* 🚀 彻底抹杀左右滑动的黑边/渐变边遮罩，让它变得像玻璃一样无感 */
+    div[data-baseweb="tab-list"] > div > div {{
+        background: transparent !important;
+        box-shadow: none !important;
+        border: none !important;
+        backdrop-filter: none !important;
+    }}
+
+    /* 微调左右滑动的小箭头（平时半透明，鼠标放上去变青色发光） */
+    div[data-baseweb="tab-list"] svg {{
+        fill: {text_color} !important;
+        opacity: 0.5;
         transition: all 0.3s;
     }}
-    
-    /* 鼠标放上去时，赛博光效爆燃 */
-    div[data-baseweb="tab-list"] button[aria-hidden="true"]:hover,
-    div[data-baseweb="tab-list"] > button:hover {{
-        transform: scale(1);
-        box-shadow: 0 0 25px #FF00FF, inset 0 0 15px #00FFFF !important;
+    div[data-baseweb="tab-list"] button[aria-hidden="true"]:hover svg {{
+        fill: #00FFFF !important;
+        filter: drop-shadow(0px 0px 5px #00FFFF) !important;
+        opacity: 1;
     }}
 
-    /* 【闪光箭头】强制箭头变成纯白发光 */
-    div[data-baseweb="tab-list"] svg {{
-        fill: #FFFFFF !important;
-        filter: drop-shadow(0px 0px 5px #FFFFFF) !important;
-    }}
-
-    /* 给整个 Tab 导航栏的底部加一条发光的赛博边界线 */
+    /* 导航栏底部加一条淡淡的透明分界线 */
     div[data-baseweb="tab-list"] {{
-        border-bottom: 2px solid #7B2FF7 !important;
-        box-shadow: 0 4px 15px rgba(123, 47, 247, 0.3) !important;
-        border-radius: 8px 8px 0 0;
+        border-bottom: 1px solid rgba(128, 128, 128, 0.2) !important;
     }}
 </style>
 """
