@@ -941,15 +941,15 @@ with tab_physics:
                 try: E = sp.sympify(N_s) * (sp.sympify(dp_s) / sp.sympify(dt_s)); st.latex(f"|\\mathcal{{E}}| = {sp.latex(E)} \\text{{ V}}")
                 except: st.error("输入有误！")
 
-    # ==========================================
+ # ==========================================
     # 🚀 近代物理 & 量子力学 (终极终极版)
     # ==========================================
     elif "近代物理" in domain:
         creator = st.radio("🧑‍🔬 选择定律:", [
             "【爱因斯坦】质能等价理论",
             "【普朗克】普朗克-爱因斯坦关系 (光子能量)",
-            "【海森堡】不确定性原理 (作图可视化)", # 🌟 新增：量子力学基石
-            "【霍金】贝肯斯坦-霍金熵公式 (黑洞熵)" # 🌟 新增：宇宙学终极公式
+            "【海森堡】不确定性原理 (作图可视化)", 
+            "【霍金】贝肯斯坦-霍金熵公式 (黑洞熵)" 
         ], horizontal=True)
 
         if "爱因斯坦" in creator:
@@ -979,7 +979,6 @@ with tab_physics:
                         st.latex(f"E = ({sp.latex(h)}) \\times ({sp.latex(nu)})")
                         st.markdown("**3. 光子能量大写:**")
                         st.latex(f"= {sp.latex(sp.simplify(E))} \\text{{ J}}")
-                        
                         if nu.is_number: st.info(f"**科学计数法近似值:** `{float(E.evalf()):.4e} J`")
                 except Exception as e: st.error(f"输入格式有误: {e}")
 
@@ -1001,39 +1000,32 @@ with tab_physics:
                     
                     st.success(f"计算完成！最小动量不确定性 $\\Delta p_{{min}}$: `{dp_min:.2e} kg·m/s`")
                     
-                    # 🌟 量子波包仿真图绘制，深度适配暗黑/白昼主题
                     if dark_mode:
                         plt.style.use('dark_background')
-                        c_x, c_p, c_glow = '#00FFFF', '#FF00FF', '#7B2FF7' # 赛博 Quantum 配色
+                        c_x, c_p, c_glow = '#00FFFF', '#FF00FF', '#7B2FF7' 
                         text_c = 'white'
                     else:
                         plt.style.use('default')
-                        c_x, c_p, c_glow = '#1f77b4', '#ff7f0e', '#7b2ff7' # 活力配色
+                        c_x, c_p, c_glow = '#1f77b4', '#ff7f0e', '#7b2ff7' 
                         text_c = 'black'
                         
                     fig = plt.figure(figsize=(10, 6))
-                    fig.patch.set_alpha(0.0) # 背景透明
+                    fig.patch.set_alpha(0.0) 
                     
-                    # 📍 第1子图：位置空间波包
                     ax1 = fig.add_subplot(211)
                     ax1.patch.set_alpha(0.0); ax1.grid(True, linestyle='--', alpha=0.3)
                     x_vals = np.linspace(-3*dx, 3*dx, 500)
-                    # 高斯波包
                     wave_x = np.exp(-(x_vals**2) / (4 * dx**2)) * np.cos(10 * x_vals / dx)
                     ax1.plot(x_vals, wave_x, color=c_x, lw=2, label="粒子波包 $\\Psi(x)$")
-                    # 绘制不确定性范围
                     ax1.fill_between(x_vals, -1, 1, where=np.abs(x_vals) < dx, color=c_glow, alpha=0.1)
                     ax1.axvline(dx, color=c_glow, linestyle='--'); ax1.axvline(-dx, color=c_glow, linestyle='--')
                     ax1.set_ylabel("振幅 $\\Psi(x)$", color=text_c); ax1.set_title(f"位置空间：$\\Delta x$ = {dx:.2e} m", color=text_c); ax1.legend()
 
-                    # 📍 第2子图：动量空间波包 (位置窄，动量就宽)
                     ax2 = fig.add_subplot(212)
                     ax2.patch.set_alpha(0.0); ax2.grid(True, linestyle='--', alpha=0.3)
                     p_vals = np.linspace(-3*dp_min, 3*dp_min, 500)
-                    # 对应的动量高斯波包 (位置倒数的倒数)
                     wave_p = np.exp(-(p_vals**2) / (4 * dp_min**2))
                     ax2.plot(p_vals, wave_p, color=c_p, lw=2, label="动量分布 $\\Phi(p)$")
-                    # 绘制最小不确定性范围
                     ax2.fill_between(p_vals, -1, 1, where=np.abs(p_vals) < dp_min, color=c_glow, alpha=0.1)
                     ax2.axvline(dp_min, color=c_glow, linestyle='--'); ax2.axvline(-dp_min, color=c_glow, linestyle='--')
                     ax2.set_xlabel("动量 P (kg·m/s)", color=text_c); ax2.set_ylabel("振幅 $\\Phi(p)$", color=text_c); ax2.set_title(f"动量空间：$\\Delta p \ge \\hbar/2\\Delta x$ = {dp_min:.2e}", color=text_c); ax2.legend()
@@ -1042,7 +1034,7 @@ with tab_physics:
                     st.caption("💡 提示：你可以尝试把 $\\Delta x$ 调得更小（比如 1e-12），下方的动量波包就会瞬间变得极其宽扁（不确定性暴增）。")
                 except: st.error("量子仿真作图失败！请确保输入了数值。")
 
-       elif "霍金" in creator:
+        elif "霍金" in creator:
             st.markdown("#### 🏺 贝肯斯坦-霍金熵公式 (Bekenstein-Hawking Entropy Formula)")
             st.info("公式: $S = k_B \\frac{A}{4\\ell_P^2} = \\frac{k_B c^3 A}{4G\\hbar}$")
             
@@ -1066,14 +1058,12 @@ with tab_physics:
                     
                     if "面积" in input_mode:
                         A = sp.sympify(A_str)
-                        # 反推质量用于画图 M = c^2 * sqrt(A/(16πG^2))
                         M = (c**2) * sp.sqrt(A / (16 * sp.pi * G**2))
                     else:
                         M = sp.sympify(M_str)
                         A = 16 * sp.pi * (G**2) * (M**2) / (c**4)
                         st.info(f"根据质量 $M$ 推导出的视界面积 $A \\approx$ `{float(A.evalf()):.4e}` m²")
 
-                    # 核心公式计算
                     S_hawking = (kB * c**3 * A) / (4 * G * hbar)
                     
                     st.success("终极解析完成！")
@@ -1101,7 +1091,6 @@ with tab_physics:
                     ax.xaxis.set_pane_color((0,0,0,0)); ax.yaxis.set_pane_color((0,0,0,0)); ax.zaxis.set_pane_color((0,0,0,0))
                     ax.axis('off') 
                     
-                    # 1. 绘制黑洞本体 (事件视界)
                     u = np.linspace(0, 2 * np.pi, 50); v = np.linspace(0, np.pi, 50)
                     U, V = np.meshgrid(u, v)
                     X_bh = Rs_val * np.cos(U) * np.sin(V)
@@ -1109,13 +1098,11 @@ with tab_physics:
                     Z_bh = Rs_val * np.cos(V)
                     ax.plot_surface(X_bh, Y_bh, Z_bh, color='black', alpha=1.0)
                     
-                    # 2. 绘制发光吸积盘
                     rad = np.linspace(Rs_val * 1.2, Rs_val * 3, 30)
                     theta = np.linspace(0, 2 * np.pi, 60)
                     R_disk, Theta_disk = np.meshgrid(rad, theta)
                     X_disk = R_disk * np.cos(Theta_disk); Y_disk = R_disk * np.sin(Theta_disk); Z_disk = np.zeros_like(X_disk)
                     
-                    # 吸积盘颜色按距离衰减
                     Intensity = 1 / (R_disk**1.5)
                     colors = plt.get_cmap(disk_cmap)(Intensity / np.max(Intensity))
                     ax.plot_surface(X_disk, Y_disk, Z_disk, facecolors=colors, alpha=0.7, shade=False)
