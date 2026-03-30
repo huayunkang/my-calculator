@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import streamlit.components.v1 as components  
 
-st.set_page_config(page_title="全能微积分计算器 Ultra", page_icon="🧮", layout="centered")
+st.set_page_config(page_title="Ultra Max 计算器 Quantum", page_icon="🧮", layout="centered")
 
 # ==========================================
 # 🧚‍♀️ 萌物召唤模块：全屏可拖拽的看板小猫
@@ -57,14 +57,14 @@ summon_mascot()
 # ==========================================
 # 页面标题与统一开关
 # ==========================================
-st.markdown('<div class="title-text">🧮 Ultra Max 终极计算器</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle-text">超级微积分神器 • 风景版</div>', unsafe_allow_html=True)
+st.markdown('<div class="title-text">🧮 Ultra Max 计算器 Quantum</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle-text">超级微积分神器 • 风景赛博版</div>', unsafe_allow_html=True)
 
 # 🌟 全局统一的暗黑模式开关
 dark_mode = st.toggle("🌙 一键开启星空夜景模式 (全局生效)")
 
 # ==========================================
-# 🎨 核心视觉升级：动态 CSS 注入
+# 🎨 核心视觉升级：动态 CSS 注入 (融合赛博朋克边界)
 # ==========================================
 day_bg_url = "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=2070" 
 night_bg_url = "https://images.unsplash.com/photo-1500417148159-68083bd7333a?q=80&w=2070" 
@@ -77,6 +77,7 @@ text_color = "#ffffff" if dark_mode else "#31333F"
 
 custom_style = f"""
 <style>
+    /* ----- 1. 唯美风景背景引擎 ----- */
     .stApp {{
         background-image: url("{current_bg}");
         background-size: cover; background-position: center; background-attachment: fixed;
@@ -92,6 +93,8 @@ custom_style = f"""
         box-shadow: 0 10px 30px rgba(0,0,0,0.3); backdrop-filter: blur(10px); color: {text_color};
         transition: all 0.5s ease-in-out;
     }}
+
+    /* ----- 2. 基础文字与按钮排版 ----- */
     .title-text {{
         background: -webkit-linear-gradient(45deg, #FF416C, #FF4B2B, #7b2ff7, #2f9eff);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
@@ -110,8 +113,33 @@ custom_style = f"""
     div.stTextInput > div > div > input, div.stTextArea > div > div > textarea {{
         border-radius: 10px; background-color: {input_bg}; color: {text_color}; transition: all 0.5s ease-in-out;
     }}
-    button[data-baseweb="tab"] {{ font-size: 16px; font-weight: bold; }}
     p, span, label, div[data-testid="stMarkdownContainer"] {{ color: {text_color} !important; }}
+    
+    /* ----- 3. 🌟 赛博朋克 Quantum 导航栏注入 ----- */
+    button[data-baseweb="tab"] {{ 
+        font-size: 16px; font-weight: bold; 
+    }}
+    
+    /* 解决 Tabs 溢出时的左右滑动遮罩块（你截图里的那个黑边） */
+    div[data-baseweb="tab-list"] > div > div {{
+        background: linear-gradient(135deg, rgba(255,0,255,0.8) 0%, rgba(123,47,247,0.8) 50%, rgba(0,255,255,0.8) 100%) !important;
+        box-shadow: 0 0 15px rgba(0, 255, 255, 0.5) !important;
+        backdrop-filter: blur(5px);
+        border-radius: 8px;
+    }}
+
+    /* 把滚动箭头（< 和 >）变成霓虹青色发光 */
+    div[data-baseweb="tab-list"] svg {{
+        fill: #00FFFF !important;
+        filter: drop-shadow(0px 0px 3px #00FFFF);
+    }}
+
+    /* 给整个 Tab 导航栏的底部加一条发光的赛博边框 */
+    div[data-baseweb="tab-list"] {{
+        border-bottom: 2px solid #7B2FF7 !important;
+        box-shadow: 0 4px 15px rgba(123, 47, 247, 0.3) !important;
+        border-radius: 8px 8px 0 0;
+    }}
 </style>
 """
 st.markdown(custom_style, unsafe_allow_html=True)
