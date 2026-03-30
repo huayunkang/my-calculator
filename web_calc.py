@@ -115,26 +115,44 @@ custom_style = f"""
     }}
     p, span, label, div[data-testid="stMarkdownContainer"] {{ color: {text_color} !important; }}
     
-    /* ----- 3. 🌟 赛博朋克 Quantum 导航栏注入 ----- */
-    button[data-baseweb="tab"] {{ 
-        font-size: 16px; font-weight: bold; 
+    /* ----- 3. 🌟 终极强杀：赛博朋克 Quantum 导航栏 ----- */
+    button[data-baseweb="tab"] {{ font-size: 16px; font-weight: bold; }}
+    
+    /* 【抹除原生黑边】强制清空 Streamlit 自带的背景和渐变蒙版 */
+    div[data-baseweb="tab-list"] > div, 
+    div[data-baseweb="tab-list"] > button {{
+        background-color: transparent !important;
+        background-image: none !important;
+        box-shadow: none !important;
+    }}
+
+    /* 【点亮赛博箭头】强行接管左右滑动箭头按钮，贴上赛博发光贴图 */
+    div[data-baseweb="tab-list"] button[aria-hidden="true"],
+    div[data-baseweb="tab-list"] > button {{
+        background: linear-gradient(135deg, #FF00FF 0%, #00FFFF 100%) !important; /* 品红到青色的渐变 */
+        box-shadow: 0 0 15px #00FFFF, inset 0 0 10px #FF00FF !important; /* 内外双层发光 */
+        border: 1px solid #00FFFF !important;
+        border-radius: 10px !important;
+        opacity: 1 !important;
+        width: 35px !important;
+        transform: scale(0.9);
+        transition: all 0.3s;
     }}
     
-    /* 解决 Tabs 溢出时的左右滑动遮罩块（你截图里的那个黑边） */
-    div[data-baseweb="tab-list"] > div > div {{
-        background: linear-gradient(135deg, rgba(255,0,255,0.8) 0%, rgba(123,47,247,0.8) 50%, rgba(0,255,255,0.8) 100%) !important;
-        box-shadow: 0 0 15px rgba(0, 255, 255, 0.5) !important;
-        backdrop-filter: blur(5px);
-        border-radius: 8px;
+    /* 鼠标放上去时，赛博光效爆燃 */
+    div[data-baseweb="tab-list"] button[aria-hidden="true"]:hover,
+    div[data-baseweb="tab-list"] > button:hover {{
+        transform: scale(1);
+        box-shadow: 0 0 25px #FF00FF, inset 0 0 15px #00FFFF !important;
     }}
 
-    /* 把滚动箭头（< 和 >）变成霓虹青色发光 */
+    /* 【闪光箭头】强制箭头变成纯白发光 */
     div[data-baseweb="tab-list"] svg {{
-        fill: #00FFFF !important;
-        filter: drop-shadow(0px 0px 3px #00FFFF);
+        fill: #FFFFFF !important;
+        filter: drop-shadow(0px 0px 5px #FFFFFF) !important;
     }}
 
-    /* 给整个 Tab 导航栏的底部加一条发光的赛博边框 */
+    /* 给整个 Tab 导航栏的底部加一条发光的赛博边界线 */
     div[data-baseweb="tab-list"] {{
         border-bottom: 2px solid #7B2FF7 !important;
         box-shadow: 0 4px 15px rgba(123, 47, 247, 0.3) !important;
