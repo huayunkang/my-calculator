@@ -168,7 +168,7 @@ def plot_graph(func, fill_a=None, fill_b=None):
     st.pyplot(fig)
 
 # ==========================================
-# 🎨 核心视觉升级：动态 CSS 注入 (📱 平板防卡死版)
+# 🎨 核心视觉升级：动态 CSS 注入 (📱 终极硬件触控探测版)
 # ==========================================
 day_bg_url = "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=2070" 
 night_bg_url = "https://images.unsplash.com/photo-1500417148159-68083bd7333a?q=80&w=2070" 
@@ -184,13 +184,14 @@ custom_style = f"""
     /* ----- 1. 唯美风景背景引擎 ----- */
     .stApp {{
         background-image: url("{current_bg}");
-        background-size: cover; background-position: center; background-attachment: fixed;
+        background-size: cover; background-position: center; 
+        background-attachment: fixed; /* 电脑端默认固定 */
         transition: background-image 0.5s ease-in-out;
-        -webkit-overflow-scrolling: touch; /* 🌟 开启 iOS 惯性滚动 */
+        -webkit-overflow-scrolling: touch;
     }}
     
-    /* 🌟 移动端专属修复：解除背景固定，拯救被苹果锁死的滚动轴 */
-    @media (max-width: 1024px) {{
+    /* 🌟 终极绝杀：不再用宽度判断，只要设备是没有鼠标的触摸屏 (hover: none) 和触控指针 (pointer: coarse)，就强行解除背景固定！ */
+    @media (hover: none) and (pointer: coarse) {{
         .stApp {{ background-attachment: scroll !important; }}
     }}
 
@@ -224,7 +225,7 @@ custom_style = f"""
     }}
     p, span, label, div[data-testid="stMarkdownContainer"] {{ color: {text_color} !important; }}
     
-    /* ----- 3. 🌟 修复与重塑：极简高级玻璃态导航栏 ----- */
+    /* ----- 3. 极简高级玻璃态导航栏 ----- */
     div[data-baseweb="tab-list"] > button {{
         background: transparent !important; border: none !important; box-shadow: none !important;
         transform: none !important; width: auto !important; opacity: 0.6 !important; transition: all 0.3s ease;
