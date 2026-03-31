@@ -37,7 +37,7 @@ def apply_chinese_font():
 st.set_page_config(page_title="Ultra Max 计算器 Quantum", page_icon="🧮", layout="centered")
 
 # ==========================================
-# 🧚‍♀️ 萌物召唤模块
+# 🧚‍♀️ 萌物召唤模块：全屏可拖拽的看板小猫 (📱 移动端完美适配版)
 # ==========================================
 def summon_mascot():
     mascot_code = """
@@ -51,12 +51,51 @@ def summon_mascot():
         mascot.style.right = "30px";
         mascot.style.zIndex = "999999";
         mascot.style.cursor = "grab";
+        mascot.style.userSelect = "none";
+        mascot.style.touchAction = "none"; // 🌟 阻止移动端拖动猫时触发页面滚动
+        
         mascot.innerHTML = '<img src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif" width="120px" style="pointer-events: none; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 3px solid #FF4B2B;"/>';
         parentDoc.body.appendChild(mascot);
+
         let isDragging = false, offsetX, offsetY;
-        mascot.onmousedown = function(e) { isDragging = true; offsetX = e.clientX - mascot.getBoundingClientRect().left; offsetY = e.clientY - mascot.getBoundingClientRect().top; };
-        parentDoc.onmousemove = function(e) { if (isDragging) { mascot.style.left = (e.clientX - offsetX) + "px"; mascot.style.top = (e.clientY - offsetY) + "px"; mascot.style.bottom = "auto"; mascot.style.right = "auto"; } };
-        parentDoc.onmouseup = function() { isDragging = false; };
+
+        // 🖱️ 电脑端鼠标事件
+        mascot.onmousedown = function(e) {
+            isDragging = true;
+            offsetX = e.clientX - mascot.getBoundingClientRect().left;
+            offsetY = e.clientY - mascot.getBoundingClientRect().top;
+            mascot.style.cursor = "grabbing";
+        };
+        parentDoc.onmousemove = function(e) {
+            if (isDragging) {
+                mascot.style.left = (e.clientX - offsetX) + "px";
+                mascot.style.top = (e.clientY - offsetY) + "px";
+                mascot.style.bottom = "auto";
+                mascot.style.right = "auto";
+            }
+        };
+        parentDoc.onmouseup = function() { isDragging = false; mascot.style.cursor = "grab"; };
+
+        // 👆 🌟 手机/平板端触摸事件
+        mascot.addEventListener('touchstart', function(e) {
+            isDragging = true;
+            let touch = e.touches[0];
+            offsetX = touch.clientX - mascot.getBoundingClientRect().left;
+            offsetY = touch.clientY - mascot.getBoundingClientRect().top;
+        }, {passive: false});
+
+        parentDoc.addEventListener('touchmove', function(e) {
+            if (isDragging) {
+                e.preventDefault(); // 拖动猫时，防止背景页面跟着滚动
+                let touch = e.touches[0];
+                mascot.style.left = (touch.clientX - offsetX) + "px";
+                mascot.style.top = (touch.clientY - offsetY) + "px";
+                mascot.style.bottom = "auto";
+                mascot.style.right = "auto";
+            }
+        }, {passive: false});
+
+        parentDoc.addEventListener('touchend', function() { isDragging = false; });
     }
     </script>
     """
@@ -105,7 +144,7 @@ def plot_graph(func, fill_a=None, fill_b=None):
     st.pyplot(fig)
 
 # ==========================================
-# 🎨 核心视觉升级：动态 CSS 注入 (融合赛博朋克边界)
+# 🎨 核心视觉升级：动态 CSS 注入 (📱 平板防卡死版)
 # ==========================================
 day_bg_url = "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=2070" 
 night_bg_url = "https://images.unsplash.com/photo-1500417148159-68083bd7333a?q=80&w=2070" 
@@ -123,7 +162,14 @@ custom_style = f"""
         background-image: url("{current_bg}");
         background-size: cover; background-position: center; background-attachment: fixed;
         transition: background-image 0.5s ease-in-out;
+        -webkit-overflow-scrolling: touch; /* 🌟 开启 iOS 惯性滚动 */
     }}
+    
+    /* 🌟 移动端专属修复：解除背景固定，拯救被苹果锁死的滚动轴 */
+    @media (max-width: 1024px) {{
+        .stApp {{ background-attachment: scroll !important; }}
+    }}
+
     .stApp::before {{
         content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background-color: {mask_bg}; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
@@ -142,9 +188,7 @@ custom_style = f"""
         font-size: 42px; font-weight: 900; text-align: center; margin-bottom: 0px; padding-bottom: 10px;
         text-shadow: 0 2px 10px rgba(255,75,43,0.2);
     }}
-    .subtitle-text {{
-        text-align: center; color: #888; font-size: 16px; letter-spacing: 2px; margin-bottom: 30px;
-    }}
+    .subtitle-text {{ text-align: center; color: #888; font-size: 16px; letter-spacing: 2px; margin-bottom: 30px; }}
     div.stButton > button {{
         border-radius: 12px; border: none; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); font-weight: 600;
@@ -157,76 +201,36 @@ custom_style = f"""
     p, span, label, div[data-testid="stMarkdownContainer"] {{ color: {text_color} !important; }}
     
     /* ----- 3. 🌟 修复与重塑：极简高级玻璃态导航栏 ----- */
-    
-    /* 🚨 抹除上个版本的灾难色块，所有标签恢复透明本色 */
     div[data-baseweb="tab-list"] > button {{
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        transform: none !important;
-        width: auto !important;
-        opacity: 0.6 !important;
-        transition: all 0.3s ease;
+        background: transparent !important; border: none !important; box-shadow: none !important;
+        transform: none !important; width: auto !important; opacity: 0.6 !important; transition: all 0.3s ease;
     }}
-    
-    /* ✨ 真正的赛博高级感：仅选中的标签底部亮起青色霓虹剑，文字发光 */
     div[data-baseweb="tab-list"] > button[aria-selected="true"] {{
-        opacity: 1 !important;
-        border-bottom: 3px solid #00FFFF !important;
-        text-shadow: 0 0 10px rgba(0, 255, 255, 0.8) !important;
+        opacity: 1 !important; border-bottom: 3px solid #00FFFF !important; text-shadow: 0 0 10px rgba(0, 255, 255, 0.8) !important;
     }}
-
-    /* 🚀 彻底抹杀左右滑动的黑边/渐变边遮罩，让它变得像玻璃一样无感 */
     div[data-baseweb="tab-list"] > div > div {{
-        background: transparent !important;
-        box-shadow: none !important;
-        border: none !important;
-        backdrop-filter: none !important;
+        background: transparent !important; box-shadow: none !important; border: none !important; backdrop-filter: none !important;
     }}
-
-    /* 微调左右滑动的小箭头（平时半透明，鼠标放上去变青色发光） */
-    div[data-baseweb="tab-list"] svg {{
-        fill: {text_color} !important;
-        opacity: 0.5;
-        transition: all 0.3s;
-    }}
-    div[data-baseweb="tab-list"] button[aria-hidden="true"]:hover svg {{
-        fill: #00FFFF !important;
-        filter: drop-shadow(0px 0px 5px #00FFFF) !important;
-        opacity: 1;
-    }}
-
-    /* 导航栏底部加一条淡淡的透明分界线 */
-    div[data-baseweb="tab-list"] {{
-        border-bottom: 1px solid rgba(128, 128, 128, 0.2) !important;
-    }}
+    div[data-baseweb="tab-list"] svg {{ fill: {text_color} !important; opacity: 0.5; transition: all 0.3s; }}
+    div[data-baseweb="tab-list"] button[aria-hidden="true"]:hover svg {{ fill: #00FFFF !important; filter: drop-shadow(0px 0px 5px #00FFFF) !important; opacity: 1; }}
+    div[data-baseweb="tab-list"] {{ border-bottom: 1px solid rgba(128, 128, 128, 0.2) !important; }}
 </style>
 """
 st.markdown(custom_style, unsafe_allow_html=True)
 
-if "math_expr" not in st.session_state:
-    st.session_state.math_expr = "x**2 - 5*x + 6"
-
+if "math_expr" not in st.session_state: st.session_state.math_expr = "x**2 - 5*x + 6"
 def add_to_expr(text): st.session_state.math_expr += text
 def clear_expr(): st.session_state.math_expr = ""
 
-# --- 解方程专属控制 ---
-if "eq_expr" not in st.session_state:
-    st.session_state.eq_expr = "x**2 - 5*x + 6 = 0"
-    
+if "eq_expr" not in st.session_state: st.session_state.eq_expr = "x**2 - 5*x + 6 = 0"
 def add_to_eq(text): st.session_state.eq_expr += text
 def clear_eq(): st.session_state.eq_expr = ""
 
-# --- 级数求和专属控制 ---
-if "sum_expr" not in st.session_state:
-    st.session_state.sum_expr = "n**2"
+if "sum_expr" not in st.session_state: st.session_state.sum_expr = "n**2"
 def add_to_sum(text): st.session_state.sum_expr += text
 def clear_sum(): st.session_state.sum_expr = ""
 
-# --- 多重积分专属控制 ---
-if "multi_expr" not in st.session_state:
-    st.session_state.multi_expr = "x * y"
-
+if "multi_expr" not in st.session_state: st.session_state.multi_expr = "x * y"
 def add_to_multi(text): st.session_state.multi_expr += text
 def clear_multi(): st.session_state.multi_expr = ""
 
@@ -237,22 +241,17 @@ tab_math, tab_eq, tab_sum, tab_multi, tab_linalg, tab_prog, tab_vector, tab_surf
 )
 
 def plot_graph(func, fill_a=None, fill_b=None):
-    if dark_mode:
-        plt.style.use('dark_background')
-        line_color = '#00ffcc' 
-    else:
-        plt.style.use('default')
-        line_color = '#FF4B2B' 
+    if dark_mode: plt.style.use('dark_background')
+    else: plt.style.use('default')
+    
+    apply_chinese_font() # 🌟 强力中文防脱落锁
+    line_color = '#00ffcc' if dark_mode else '#FF4B2B' 
         
     fig, ax = plt.subplots(figsize=(6, 4))
-    fig.patch.set_alpha(0.0)
-    ax.patch.set_alpha(0.0)
+    fig.patch.set_alpha(0.0); ax.patch.set_alpha(0.0)
 
     f_np = sp.lambdify(x, func, 'numpy')
-    if fill_a is not None and fill_b is not None:
-        plot_min, plot_max = min(fill_a, fill_b) - 2, max(fill_a, fill_b) + 2
-    else:
-        plot_min, plot_max = -10, 10
+    plot_min, plot_max = (min(fill_a, fill_b) - 2, max(fill_a, fill_b) + 2) if fill_a is not None and fill_b is not None else (-10, 10)
         
     x_vals = np.linspace(plot_min, plot_max, 400)
     y_vals = f_np(x_vals)
@@ -267,11 +266,9 @@ def plot_graph(func, fill_a=None, fill_b=None):
         ax.fill_between(fill_x, fill_y, alpha=0.3, color='#7b2ff7', label="积分面积")
         ax.legend()
 
-    ax.axhline(0, color='gray', linewidth=1)
-    ax.axvline(0, color='gray', linewidth=1)
+    ax.axhline(0, color='gray', linewidth=1); ax.axvline(0, color='gray', linewidth=1)
     ax.grid(True, linestyle='--', alpha=0.3)
     st.pyplot(fig)
-
 # ------------------------------------------
 # 第一页：微积分 
 # ------------------------------------------
