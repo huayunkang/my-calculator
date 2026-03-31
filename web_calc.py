@@ -1,3 +1,4 @@
+Python
 import streamlit as st
 import sympy as sp
 import numpy as np
@@ -8,13 +9,12 @@ import os
 import urllib.request
 
 # ==========================================
-# 🌟 终极中文字体守护引擎 (解决 Style 重置问题)
+# 🌟 1. 终极中文字体守护引擎 (解决云端乱码)
 # ==========================================
 @st.cache_resource
 def get_font_path():
     """全自动获取或下载字体文件"""
     local_path = "SimHei.ttf"
-    # 如果本地没有，就从高可用 CDN 下载
     if not os.path.exists(local_path):
         url = "https://cdn.jsdelivr.net/gh/StellarCN/scp_zh@master/fonts/SimHei.ttf"
         try: urllib.request.urlretrieve(url, local_path)
@@ -22,29 +22,26 @@ def get_font_path():
     return local_path if os.path.exists(local_path) else None
 
 def apply_chinese_font():
-    """
-    🚨 关键：这个函数必须在每次 plt.style.use() 之后立即调用！
-    """
+    """在每次绘图前强制注入中文支持"""
     f_path = get_font_path()
     if f_path:
-        # 强行注册并应用
         fm.fontManager.addfont(f_path)
         prop = fm.FontProperties(fname=f_path)
         plt.rcParams['font.sans-serif'] = [prop.get_name(), 'sans-serif']
-        plt.rcParams['axes.unicode_minus'] = False # 修复负号
+        plt.rcParams['axes.unicode_minus'] = False 
 
-# --- 页面基础配置 ---
+# --- 基础配置 ---
 st.set_page_config(page_title="Ultra Max 计算器 Quantum", page_icon="🧮", layout="centered")
 
 # ==========================================
-# 🧚‍♀️ 萌物召唤模块：全屏可拖拽的看板小猫 (📱 移动端终极靶点追踪版)
+# 🧚‍♀️ 2. 萌物召唤模块：全屏可拖拽的看板小猫 (📱 移动端霸体追踪版)
 # ==========================================
 def summon_mascot():
     mascot_code = """
     <script>
     const parentDoc = window.parent.document;
     
-    // 🔪 先杀旧猫，防止幽灵代码干扰
+    // 🔪 斩杀旧猫：防止热更新后旧的事件监听器残留在内存里卡死页面
     let oldCat = parentDoc.getElementById("cute-mascot");
     if (oldCat) oldCat.remove();
 
@@ -56,7 +53,7 @@ def summon_mascot():
     mascot.style.zIndex = "999999";
     mascot.style.cursor = "grab";
     mascot.style.userSelect = "none";
-    mascot.style.touchAction = "none"; // 禁止浏览器滑动劫持
+    mascot.style.touchAction = "none"; // 禁止浏览器默认手势
     
     mascot.innerHTML = '<img draggable="false" src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif" width="120px" style="pointer-events: none; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 3px solid #FF4B2B;"/>';
     parentDoc.body.appendChild(mascot);
@@ -64,16 +61,14 @@ def summon_mascot():
     let isDragging = false;
     let startX, startY, initialLeft, initialTop;
 
-    // 🎯 核心追踪算法：记录按下的瞬间坐标，计算相对位移
+    // 🎯 核心逻辑：计算相对偏移，防止跳动
     function startDrag(clientX, clientY) {
         isDragging = true;
+        const rect = mascot.getBoundingClientRect();
         startX = clientX;
         startY = clientY;
-        const rect = mascot.getBoundingClientRect();
         initialLeft = rect.left;
         initialTop = rect.top;
-        
-        // 瞬间将定位模式从 bottom/right 切换到 left/top，防止闪烁
         mascot.style.bottom = "auto";
         mascot.style.right = "auto";
         mascot.style.left = initialLeft + "px";
@@ -81,7 +76,7 @@ def summon_mascot():
         mascot.style.cursor = "grabbing";
     }
 
-    function drag(clientX, clientY) {
+    function moveDrag(clientX, clientY) {
         if (!isDragging) return;
         const dx = clientX - startX;
         const dy = clientY - startY;
@@ -89,86 +84,39 @@ def summon_mascot():
         mascot.style.top = (initialTop + dy) + "px";
     }
 
-    function endDrag() {
-        isDragging = false;
-        mascot.style.cursor = "grab";
-    }
-
-    // 📱 ================= 手机/平板 专属触摸神经 ================= 📱
-    // 极其关键：把 touchmove 直接绑在 mascot 身上，而不是 parentDoc！
+    // 📱 手机/平板触控神经
     mascot.addEventListener('touchstart', function(e) {
-        e.preventDefault(); // 没收页面滚动权限
+        e.preventDefault(); e.stopPropagation(); // 阻止页面滚动
         startDrag(e.touches[0].clientX, e.touches[0].clientY);
     }, {passive: false});
 
     mascot.addEventListener('touchmove', function(e) {
-        e.preventDefault(); // 持续没收滚动权限
-        drag(e.touches[0].clientX, e.touches[0].clientY);
+        e.preventDefault(); e.stopPropagation();
+        moveDrag(e.touches[0].clientX, e.touches[0].clientY);
     }, {passive: false});
 
-    mascot.addEventListener('touchend', endDrag);
-    mascot.addEventListener('touchcancel', endDrag);
+    mascot.addEventListener('touchend', () => { isDragging = false; });
 
-    // 💻 ================= 电脑端 专属鼠标神经 ================= 💻
-    mascot.addEventListener('mousedown', function(e) {
-        e.preventDefault();
-        startDrag(e.clientX, e.clientY);
-    });
+    // 💻 电脑鼠标神经
+    mascot.addEventListener('mousedown', (e) => { e.preventDefault(); startDrag(e.clientX, e.clientY); });
+    parentDoc.addEventListener('mousemove', (e) => { if(isDragging) moveDrag(e.clientX, e.clientY); });
+    parentDoc.addEventListener('mouseup', () => { isDragging = false; });
 
-    parentDoc.addEventListener('mousemove', function(e) {
-        drag(e.clientX, e.clientY);
-    });
-
-    parentDoc.addEventListener('mouseup', endDrag);
-    
     </script>
     """
     components.html(mascot_code, height=0, width=0)
 
 summon_mascot()
 
+# ==========================================
+# 3. 页面标题
+# ==========================================
 st.markdown('<div class="title-text">🧮 Ultra Max 计算器 Quantum</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle-text">超级微积分神器 • 风景赛博版</div>', unsafe_allow_html=True)
 dark_mode = st.toggle("🌙 一键开启星空夜景模式 (全局生效)")
 
 # ==========================================
-# 📈 统一绘图函数 (已注入字体守护)
-# ==========================================
-def plot_graph(func, fill_a=None, fill_b=None):
-    # 先应用样式
-    if dark_mode: plt.style.use('dark_background')
-    else: plt.style.use('default')
-    
-    # 🚨 重点：样式应用后必须立即重新注入字体！
-    apply_chinese_font()
-    
-    line_color = '#00ffcc' if dark_mode else '#FF4B2B'
-    fig, ax = plt.subplots(figsize=(6, 4))
-    fig.patch.set_alpha(0.0)
-    ax.patch.set_alpha(0.0)
-
-    f_np = sp.lambdify(x, func, 'numpy')
-    plot_min, plot_max = (min(fill_a, fill_b) - 2, max(fill_a, fill_b) + 2) if (fill_a is not None) else (-10, 10)
-    
-    x_vals = np.linspace(plot_min, plot_max, 400)
-    y_vals = f_np(x_vals)
-    if isinstance(y_vals, (int, float)): y_vals = np.full_like(x_vals, y_vals)
-        
-    ax.plot(x_vals, y_vals, color=line_color, linewidth=2)
-    if fill_a is not None and fill_b is not None:
-        fill_x = np.linspace(fill_a, fill_b, 100)
-        fill_y = f_np(fill_x)
-        if isinstance(fill_y, (int, float)): fill_y = np.full_like(fill_x, fill_y)
-        ax.fill_between(fill_x, fill_y, alpha=0.3, color='#7b2ff7', label="积分面积")
-        ax.legend()
-
-    ax.axhline(0, color='gray', linewidth=1); ax.axvline(0, color='gray', linewidth=1)
-    ax.grid(True, linestyle='--', alpha=0.3)
-    ax.set_xlabel("x 轴 (变量)"); ax.set_ylabel("y 轴 (函数值)") # 测试中文
-    st.pyplot(fig)
-
-# ==========================================
-# 🎨 核心视觉升级：动态 CSS 注入 (📱 终极硬件触控探测版)
+# 🎨 4. 视觉引擎：动态 CSS 注入 (📱 彻底修复平板滑动卡死)
 # ==========================================
 day_bg_url = "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=2070" 
 night_bg_url = "https://images.unsplash.com/photo-1500417148159-68083bd7333a?q=80&w=2070" 
@@ -181,18 +129,28 @@ text_color = "#ffffff" if dark_mode else "#31333F"
 
 custom_style = f"""
 <style>
-    /* ----- 1. 唯美风景背景引擎 ----- */
+    /* ----- 1. 核心背景与滑动修复 ----- */
     .stApp {{
         background-image: url("{current_bg}");
         background-size: cover; background-position: center; 
-        background-attachment: fixed; /* 电脑端默认固定 */
+        background-attachment: fixed; /* 电脑端视差 */
         transition: background-image 0.5s ease-in-out;
-        -webkit-overflow-scrolling: touch;
     }}
     
-    /* 🌟 终极绝杀：不再用宽度判断，只要设备是没有鼠标的触摸屏 (hover: none) 和触控指针 (pointer: coarse)，就强行解除背景固定！ */
-    @media (hover: none) and (pointer: coarse) {{
-        .stApp {{ background-attachment: scroll !important; }}
+    /* 🚨 移动端/平板 终极救命补丁：必须解除 fixed 锁定，否则 iPad 会假死 */
+    @media screen and (max-width: 1100px), (hover: none) and (pointer: coarse) {{
+        .stApp {{
+            background-attachment: scroll !important;
+            overflow-y: auto !important;
+        }}
+        .block-container {{
+            backdrop-filter: none !important; /* 解除渲染压力 */
+            -webkit-backdrop-filter: none !important;
+        }}
+        html, body, [data-testid="stAppViewContainer"] {{
+            overflow: auto !important;
+            height: auto !important;
+        }}
     }}
 
     .stApp::before {{
@@ -206,43 +164,33 @@ custom_style = f"""
         transition: all 0.5s ease-in-out;
     }}
 
-    /* ----- 2. 基础文字与按钮排版 ----- */
+    /* ----- 2. 文字与按钮风格 ----- */
     .title-text {{
         background: -webkit-linear-gradient(45deg, #FF416C, #FF4B2B, #7b2ff7, #2f9eff);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         font-size: 42px; font-weight: 900; text-align: center; margin-bottom: 0px; padding-bottom: 10px;
-        text-shadow: 0 2px 10px rgba(255,75,43,0.2);
     }}
-    .subtitle-text {{ text-align: center; color: #888; font-size: 16px; letter-spacing: 2px; margin-bottom: 30px; }}
+    .subtitle-text {{ text-align: center; color: #888; font-size: 16px; margin-bottom: 30px; }}
+    
     div.stButton > button {{
-        border-radius: 12px; border: none; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); font-weight: 600;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;
+        border-radius: 12px; border: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;
     }}
-    div.stButton > button:hover {{ transform: translateY(-3px); box-shadow: 0 8px 20px rgba(118, 75, 162, 0.4); }}
-    div.stTextInput > div > div > input, div.stTextArea > div > div > textarea {{
-        border-radius: 10px; background-color: {input_bg}; color: {text_color}; transition: all 0.5s ease-in-out;
-    }}
+    div.stTextInput > div > div > input {{ background-color: {input_bg}; color: {text_color}; }}
     p, span, label, div[data-testid="stMarkdownContainer"] {{ color: {text_color} !important; }}
     
-    /* ----- 3. 极简高级玻璃态导航栏 ----- */
-    div[data-baseweb="tab-list"] > button {{
-        background: transparent !important; border: none !important; box-shadow: none !important;
-        transform: none !important; width: auto !important; opacity: 0.6 !important; transition: all 0.3s ease;
-    }}
+    /* ----- 3. 玻璃态标签栏 ----- */
+    div[data-baseweb="tab-list"] > button {{ background: transparent !important; opacity: 0.6; }}
     div[data-baseweb="tab-list"] > button[aria-selected="true"] {{
-        opacity: 1 !important; border-bottom: 3px solid #00FFFF !important; text-shadow: 0 0 10px rgba(0, 255, 255, 0.8) !important;
+        opacity: 1 !important; border-bottom: 3px solid #00FFFF !important;
     }}
-    div[data-baseweb="tab-list"] > div > div {{
-        background: transparent !important; box-shadow: none !important; border: none !important; backdrop-filter: none !important;
-    }}
-    div[data-baseweb="tab-list"] svg {{ fill: {text_color} !important; opacity: 0.5; transition: all 0.3s; }}
-    div[data-baseweb="tab-list"] button[aria-hidden="true"]:hover svg {{ fill: #00FFFF !important; filter: drop-shadow(0px 0px 5px #00FFFF) !important; opacity: 1; }}
-    div[data-baseweb="tab-list"] {{ border-bottom: 1px solid rgba(128, 128, 128, 0.2) !important; }}
+    div[data-baseweb="tab-list"] svg {{ fill: {text_color} !important; }}
 </style>
 """
 st.markdown(custom_style, unsafe_allow_html=True)
 
+# ==========================================
+# 5. 状态机与变量定义
+# ==========================================
 if "math_expr" not in st.session_state: st.session_state.math_expr = "x**2 - 5*x + 6"
 def add_to_expr(text): st.session_state.math_expr += text
 def clear_expr(): st.session_state.math_expr = ""
@@ -265,11 +213,14 @@ tab_math, tab_eq, tab_sum, tab_multi, tab_linalg, tab_prog, tab_vector, tab_surf
     ["📚 微积分", "🔍 解方程", "➕ 级数", "🌀 多重积分", "🧮 线性代数", "💻 程序员", "📐 向量", "🏺 旋转面", "〰️ 曲线积分", "🍎 物理引擎"]
 )
 
+# ==========================================
+# 📈 6. 统一绘图函数
+# ==========================================
 def plot_graph(func, fill_a=None, fill_b=None):
     if dark_mode: plt.style.use('dark_background')
     else: plt.style.use('default')
     
-    apply_chinese_font() # 🌟 强力中文防脱落锁
+    apply_chinese_font() 
     line_color = '#00ffcc' if dark_mode else '#FF4B2B' 
         
     fig, ax = plt.subplots(figsize=(6, 4))
