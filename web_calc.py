@@ -8,41 +8,36 @@ import os
 import urllib.request
 
 # ==========================================
-# 🌟 修复 Matplotlib 中文乱码 (终极降维打击版：自带字体包)
+# 🌟 终极中文字体守护引擎 (解决 Style 重置问题)
 # ==========================================
 @st.cache_resource
-def force_load_chinese_font():
-    font_path = "SimHei.ttf"
-    
-    # 1. 既然 Linux 系统装字体靠不住，我们直接让 Python 现场下载一个！
-    if not os.path.exists(font_path):
-        # 使用高可用 CDN 极速下载经典黑体文件
-        font_url = "https://cdn.jsdelivr.net/gh/StellarCN/scp_zh@master/fonts/SimHei.ttf"
-        try:
-            urllib.request.urlretrieve(font_url, font_path)
-        except:
-            pass
-            
-    # 2. 强行把下载好的 .ttf 文件拍在 Matplotlib 桌子上
-    if os.path.exists(font_path):
-        fm.fontManager.addfont(font_path)
-        prop = fm.FontProperties(fname=font_path)
-        # 3. 将全局默认字体设置为这个确切的黑体
-        plt.rcParams['font.sans-serif'] = [prop.get_name(), 'sans-serif']
-    else:
-        # 兜底
-        plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'sans-serif']
-        
-    # 解决坐标轴负号变方块的问题
-    plt.rcParams['axes.unicode_minus'] = False
+def get_font_path():
+    """全自动获取或下载字体文件"""
+    local_path = "SimHei.ttf"
+    # 如果本地没有，就从高可用 CDN 下载
+    if not os.path.exists(local_path):
+        url = "https://cdn.jsdelivr.net/gh/StellarCN/scp_zh@master/fonts/SimHei.ttf"
+        try: urllib.request.urlretrieve(url, local_path)
+        except: pass
+    return local_path if os.path.exists(local_path) else None
 
-force_load_chinese_font()
+def apply_chinese_font():
+    """
+    🚨 关键：这个函数必须在每次 plt.style.use() 之后立即调用！
+    """
+    f_path = get_font_path()
+    if f_path:
+        # 强行注册并应用
+        fm.fontManager.addfont(f_path)
+        prop = fm.FontProperties(fname=f_path)
+        plt.rcParams['font.sans-serif'] = [prop.get_name(), 'sans-serif']
+        plt.rcParams['axes.unicode_minus'] = False # 修复负号
 
 # --- 页面基础配置 ---
 st.set_page_config(page_title="Ultra Max 计算器 Quantum", page_icon="🧮", layout="centered")
 
 # ==========================================
-# 🧚‍♀️ 萌物召唤模块：全屏可拖拽的看板小猫
+# 🧚‍♀️ 萌物召唤模块
 # ==========================================
 def summon_mascot():
     mascot_code = """
@@ -56,31 +51,12 @@ def summon_mascot():
         mascot.style.right = "30px";
         mascot.style.zIndex = "999999";
         mascot.style.cursor = "grab";
-        mascot.style.userSelect = "none";
-        
         mascot.innerHTML = '<img src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif" width="120px" style="pointer-events: none; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 3px solid #FF4B2B;"/>';
         parentDoc.body.appendChild(mascot);
-
-        let isDragging = false;
-        let offsetX, offsetY;
-        mascot.onmousedown = function(e) {
-            isDragging = true;
-            offsetX = e.clientX - mascot.getBoundingClientRect().left;
-            offsetY = e.clientY - mascot.getBoundingClientRect().top;
-            mascot.style.cursor = "grabbing";
-        };
-        parentDoc.onmousemove = function(e) {
-            if (isDragging) {
-                mascot.style.left = (e.clientX - offsetX) + "px";
-                mascot.style.top = (e.clientY - offsetY) + "px";
-                mascot.style.bottom = "auto";
-                mascot.style.right = "auto";
-            }
-        };
-        parentDoc.onmouseup = function() {
-            isDragging = false;
-            mascot.style.cursor = "grab";
-        };
+        let isDragging = false, offsetX, offsetY;
+        mascot.onmousedown = function(e) { isDragging = true; offsetX = e.clientX - mascot.getBoundingClientRect().left; offsetY = e.clientY - mascot.getBoundingClientRect().top; };
+        parentDoc.onmousemove = function(e) { if (isDragging) { mascot.style.left = (e.clientX - offsetX) + "px"; mascot.style.top = (e.clientY - offsetY) + "px"; mascot.style.bottom = "auto"; mascot.style.right = "auto"; } };
+        parentDoc.onmouseup = function() { isDragging = false; };
     }
     </script>
     """
@@ -88,14 +64,45 @@ def summon_mascot():
 
 summon_mascot()
 
-# ==========================================
-# 页面标题与统一开关
-# ==========================================
 st.markdown('<div class="title-text">🧮 Ultra Max 计算器 Quantum</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle-text">超级微积分神器 • 风景赛博版</div>', unsafe_allow_html=True)
-
-# 🌟 全局统一的暗黑模式开关
 dark_mode = st.toggle("🌙 一键开启星空夜景模式 (全局生效)")
+
+# ==========================================
+# 📈 统一绘图函数 (已注入字体守护)
+# ==========================================
+def plot_graph(func, fill_a=None, fill_b=None):
+    # 先应用样式
+    if dark_mode: plt.style.use('dark_background')
+    else: plt.style.use('default')
+    
+    # 🚨 重点：样式应用后必须立即重新注入字体！
+    apply_chinese_font()
+    
+    line_color = '#00ffcc' if dark_mode else '#FF4B2B'
+    fig, ax = plt.subplots(figsize=(6, 4))
+    fig.patch.set_alpha(0.0)
+    ax.patch.set_alpha(0.0)
+
+    f_np = sp.lambdify(x, func, 'numpy')
+    plot_min, plot_max = (min(fill_a, fill_b) - 2, max(fill_a, fill_b) + 2) if (fill_a is not None) else (-10, 10)
+    
+    x_vals = np.linspace(plot_min, plot_max, 400)
+    y_vals = f_np(x_vals)
+    if isinstance(y_vals, (int, float)): y_vals = np.full_like(x_vals, y_vals)
+        
+    ax.plot(x_vals, y_vals, color=line_color, linewidth=2)
+    if fill_a is not None and fill_b is not None:
+        fill_x = np.linspace(fill_a, fill_b, 100)
+        fill_y = f_np(fill_x)
+        if isinstance(fill_y, (int, float)): fill_y = np.full_like(fill_x, fill_y)
+        ax.fill_between(fill_x, fill_y, alpha=0.3, color='#7b2ff7', label="积分面积")
+        ax.legend()
+
+    ax.axhline(0, color='gray', linewidth=1); ax.axvline(0, color='gray', linewidth=1)
+    ax.grid(True, linestyle='--', alpha=0.3)
+    ax.set_xlabel("x 轴 (变量)"); ax.set_ylabel("y 轴 (函数值)") # 测试中文
+    st.pyplot(fig)
 
 # ==========================================
 # 🎨 核心视觉升级：动态 CSS 注入 (融合赛博朋克边界)
