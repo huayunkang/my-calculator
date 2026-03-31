@@ -37,71 +37,70 @@ def apply_chinese_font():
 st.set_page_config(page_title="Ultra Max 计算器 Quantum", page_icon="🧮", layout="centered")
 
 # ==========================================
-# 🧚‍♀️ 萌物召唤模块：全屏可拖拽的看板小猫 (📱 移动端霸体拖拽版)
+# 🧚‍♀️ 萌物召唤模块：全屏可拖拽的看板小猫 (📱 移动端终极霸体+斩杀旧版本)
 # ==========================================
 def summon_mascot():
     mascot_code = """
     <script>
     const parentDoc = window.parent.document;
-    if (!parentDoc.getElementById("cute-mascot")) {
-        const mascot = parentDoc.createElement("div");
-        mascot.id = "cute-mascot";
-        mascot.style.position = "fixed";
-        mascot.style.bottom = "30px";
-        mascot.style.right = "30px";
-        mascot.style.zIndex = "999999";
-        mascot.style.cursor = "grab";
-        mascot.style.userSelect = "none";
-        mascot.style.touchAction = "none"; 
-        
-        mascot.innerHTML = '<img src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif" width="120px" style="pointer-events: none; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 3px solid #FF4B2B;"/>';
-        parentDoc.body.appendChild(mascot);
-
-        let isDragging = false, offsetX, offsetY;
-
-        // 🖱️ 电脑端鼠标事件
-        mascot.onmousedown = function(e) {
-            isDragging = true;
-            offsetX = e.clientX - mascot.getBoundingClientRect().left;
-            offsetY = e.clientY - mascot.getBoundingClientRect().top;
-            mascot.style.cursor = "grabbing";
-            e.preventDefault(); 
-        };
-        parentDoc.onmousemove = function(e) {
-            if (isDragging) {
-                mascot.style.left = (e.clientX - offsetX) + "px";
-                mascot.style.top = (e.clientY - offsetY) + "px";
-                mascot.style.bottom = "auto";
-                mascot.style.right = "auto";
-            }
-        };
-        parentDoc.onmouseup = function() { isDragging = false; mascot.style.cursor = "grab"; };
-
-        // 👆 手机/平板端触摸事件 (终极强锁版)
-        mascot.addEventListener('touchstart', function(e) {
-            // 🛑 核心杀招：手指一碰到猫，立刻禁止浏览器把这个动作识别为“滑页面”
-            e.preventDefault(); 
-            isDragging = true;
-            let touch = e.touches[0];
-            offsetX = touch.clientX - mascot.getBoundingClientRect().left;
-            offsetY = touch.clientY - mascot.getBoundingClientRect().top;
-        }, {passive: false}); // passive: false 允许我们使用 preventDefault
-
-        parentDoc.addEventListener('touchmove', function(e) {
-            if (isDragging) {
-                // 🛑 拖拽期间持续没收滚动权限
-                e.preventDefault(); 
-                let touch = e.touches[0];
-                mascot.style.left = (touch.clientX - offsetX) + "px";
-                mascot.style.top = (touch.clientY - offsetY) + "px";
-                mascot.style.bottom = "auto";
-                mascot.style.right = "auto";
-            }
-        }, {passive: false});
-
-        parentDoc.addEventListener('touchend', function() { isDragging = false; });
-        parentDoc.addEventListener('touchcancel', function() { isDragging = false; });
+    
+    // 🔪 核心修复：必须先杀掉前一个版本的“幽灵猫”，否则新代码永远不会生效！
+    let oldCat = parentDoc.getElementById("cute-mascot");
+    if (oldCat) {
+        oldCat.remove();
     }
+
+    // 重新创造一只拥有满血触控神经的新猫
+    const mascot = parentDoc.createElement("div");
+    mascot.id = "cute-mascot";
+    mascot.style.position = "fixed";
+    mascot.style.bottom = "30px";
+    mascot.style.right = "30px";
+    mascot.style.zIndex = "999999";
+    mascot.style.cursor = "grab";
+    mascot.style.userSelect = "none";
+    mascot.style.touchAction = "none"; // 彻底封杀浏览器的滑动劫持
+    
+    // 加上 draggable="false" 防止图片自身的默认拖拽行为干扰
+    mascot.innerHTML = '<img draggable="false" src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif" width="120px" style="pointer-events: none; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 3px solid #FF4B2B;"/>';
+    parentDoc.body.appendChild(mascot);
+
+    let isDragging = false, offsetX, offsetY;
+
+    // 🎯 终极杀器：Pointer Events (统一接管鼠标和手指触摸)
+    mascot.addEventListener('pointerdown', function(e) {
+        isDragging = true;
+        
+        // 🔒 强制捕获手指点按！哪怕手指滑出猫的区域，猫也会死死跟着手指！
+        mascot.setPointerCapture(e.pointerId); 
+        mascot.style.cursor = "grabbing";
+        
+        offsetX = e.clientX - mascot.getBoundingClientRect().left;
+        offsetY = e.clientY - mascot.getBoundingClientRect().top;
+        e.preventDefault(); // 没收浏览器滑动权限
+    });
+
+    mascot.addEventListener('pointermove', function(e) {
+        if (isDragging) {
+            mascot.style.left = (e.clientX - offsetX) + "px";
+            mascot.style.top = (e.clientY - offsetY) + "px";
+            mascot.style.bottom = "auto";
+            mascot.style.right = "auto";
+            e.preventDefault(); // 拖拽时持续没收滑动权限
+        }
+    });
+
+    mascot.addEventListener('pointerup', function(e) {
+        isDragging = false;
+        mascot.style.cursor = "grab";
+        mascot.releasePointerCapture(e.pointerId); // 释放捕获
+    });
+
+    mascot.addEventListener('pointercancel', function(e) {
+        isDragging = false;
+        mascot.style.cursor = "grab";
+        mascot.releasePointerCapture(e.pointerId);
+    });
     </script>
     """
     components.html(mascot_code, height=0, width=0)
