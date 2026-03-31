@@ -2,31 +2,39 @@ import streamlit as st
 import sympy as sp
 import numpy as np
 import matplotlib.pyplot as plt
-import streamlit.components.v1 as components  
-
-# ==========================================
-# 🌟 修复 Matplotlib 中文“豆腐块”乱码问题 (终极破壁版)
-# ==========================================
-import matplotlib
+import matplotlib.font_manager as fm
+import streamlit.components.v1 as components
 import os
 import shutil
 
-@st.cache_resource
-def clear_font_cache():
-    # 强制摧毁 Matplotlib 的旧字体缓存，逼它重新去认字！
-    cache_dir = matplotlib.get_cachedir()
-    if os.path.exists(cache_dir):
-        try:
-            shutil.rmtree(cache_dir)
-        except:
-            pass
+# ==========================================
+# 🌟 修复 Matplotlib 中文乱码 (最硬核：绝对路径强行注入版)
+# ==========================================
+def force_load_chinese_font():
+    # 1. 检测云端 Linux 服务器的字体标准路径
+    cloud_font_path = '/usr/share/fonts/truetype/wqy/wqy-microhei.ttc'
+    
+    # 调试信息：在页面显示字体是否存在（运行成功后可以删掉这行）
+    # st.write(f"🔍 调试：云端字体文件是否存在 -> {os.path.exists(cloud_font_path)}")
 
-clear_font_cache() # 执行缓存清理操作
+    if os.path.exists(cloud_font_path):
+        # 2. 强行将字体文件注册到 Matplotlib 的经理部
+        fm.fontManager.addfont(cloud_font_path)
+        # 3. 动态获取该字体的官方内部名称
+        prop = fm.FontProperties(fname=cloud_font_path)
+        plt.rcParams['font.sans-serif'] = [prop.get_name()]
+    else:
+        # 4. 如果是本地 Windows/Mac 运行，尝试使用系统常见中文字体
+        plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'PingFang SC', 'sans-serif']
+    
+    # 解决负号 '-' 显示为方块的问题
+    plt.rcParams['axes.unicode_minus'] = False
 
-# 优先使用云端微米黑字体，找不到再退化到本地的黑体/雅黑/苹方
-plt.rcParams['font.sans-serif'] = ['WenQuanYi Micro Hei', 'SimHei', 'Microsoft YaHei', 'PingFang SC', 'sans-serif']
-# 解决坐标轴上负号 '-' 显示为方块的问题
-plt.rcParams['axes.unicode_minus'] = False
+force_load_chinese_font()
+
+# --- 页面基础配置 ---
+st.set_page_config(page_title="Ultra Max 计算器 Quantum", page_icon="🧮", layout="centered")
+
 # ==========================================
 # 🧚‍♀️ 萌物召唤模块：全屏可拖拽的看板小猫
 # ==========================================
@@ -44,7 +52,6 @@ def summon_mascot():
         mascot.style.cursor = "grab";
         mascot.style.userSelect = "none";
         
-        // 键盘猫 GIF
         mascot.innerHTML = '<img src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif" width="120px" style="pointer-events: none; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 3px solid #FF4B2B;"/>';
         parentDoc.body.appendChild(mascot);
 
