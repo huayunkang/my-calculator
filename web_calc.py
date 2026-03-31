@@ -827,7 +827,7 @@ with tab_physics:
     
     st.markdown("---")
 
-    # ==========================================
+# ==========================================
     # 🍎 经典力学 (含流体力学)
     # ==========================================
     if "经典力学" in domain:
@@ -882,9 +882,12 @@ with tab_physics:
                     t_flight = 2 * v0 * np.sin(theta_rad) / g_v
                     if dark_mode: plt.style.use('dark_background'); line_color = '#00ffcc'
                     else: plt.style.use('default'); line_color = '#FF4B2B'
+                    
+                    apply_chinese_font() # 👈 强制注入中文字体
+                    
                     fig, ax = plt.subplots(figsize=(8, 4)); fig.patch.set_alpha(0.0); ax.patch.set_alpha(0.0); t_vals = np.linspace(0, t_flight, 200)
                     x_v, y_v = v0 * np.cos(theta_rad) * t_vals, v0 * np.sin(theta_rad) * t_vals - 0.5 * g_v * t_vals**2
-                    ax.plot(x_v, y_v, color=line_color, lw=3); ax.fill_between(x_v, y_v, alpha=0.2, color=line_color); ax.set_xlabel("X (m)", color=line_color); ax.set_ylabel("Y (m)", color=line_color); ax.set_ylim(bottom=0); ax.grid(True, linestyle='--', alpha=0.3)
+                    ax.plot(x_v, y_v, color=line_color, lw=3); ax.fill_between(x_v, y_v, alpha=0.2, color=line_color); ax.set_xlabel("水平距离 X (m)", color=line_color); ax.set_ylabel("竖直高度 Y (m)", color=line_color); ax.set_ylim(bottom=0); ax.grid(True, linestyle='--', alpha=0.3)
                     st.pyplot(fig); st.info(f"射程: `{x_v[-1]:.2f} 米`, 最大高度: `{np.max(y_v):.2f} 米`")
                 except: st.error("作图失败！请确保输入确切数值。")
 
@@ -929,6 +932,9 @@ with tab_physics:
             if st.button("📊 发动熵增魔法 (作图)", key="btn_ent"):
                 if dark_mode: plt.style.use('dark_background'); line_color = '#FF4B2B'; fill_color = '#7B2FF7'
                 else: plt.style.use('default'); line_color = '#FF7F0e'; fill_color = '#1f77b4'
+                
+                apply_chinese_font() # 👈 强制注入中文字体
+                
                 fig, ax = plt.subplots(figsize=(8, 4)); fig.patch.set_alpha(0.0); ax.patch.set_alpha(0.0)
                 # 模拟粒子扩散过程中的统计熵 (S = k*ln(W))
                 time_steps = 100
@@ -956,7 +962,7 @@ with tab_physics:
                 st.pyplot(fig)
                 st.success(f"模拟完成！初始熵: {entropy_vals[0]:.2e}, 最终熵: {entropy_vals[-1]:.2e}，系统自发由有序变为无序。")
 
-  # ==========================================
+    # ==========================================
     # ⚡ 电磁学 (带物理曲线可视化)
     # ==========================================
     elif "电磁" in domain:
@@ -977,6 +983,9 @@ with tab_physics:
                     # 🌟 库仑力平方反比曲线图
                     if dark_mode: plt.style.use('dark_background'); c_line = '#00FFFF'
                     else: plt.style.use('default'); c_line = '#FF4B2B'
+                    
+                    apply_chinese_font() # 👈 强制注入中文字体
+                    
                     fig, ax = plt.subplots(figsize=(6, 3)); fig.patch.set_alpha(0.0); ax.patch.set_alpha(0.0)
                     r_vals = np.linspace(r_v * 0.2, r_v * 4, 100)
                     F_vals = k_e * (q1_v * q2_v) / (r_vals**2)
@@ -1001,6 +1010,9 @@ with tab_physics:
                     # 🌟 安培力角度正弦图
                     if dark_mode: plt.style.use('dark_background'); c_line = '#FF00FF'
                     else: plt.style.use('default'); c_line = '#1f77b4'
+                    
+                    apply_chinese_font() # 👈 强制注入中文字体
+                    
                     fig, ax = plt.subplots(figsize=(6, 3)); fig.patch.set_alpha(0.0); ax.patch.set_alpha(0.0)
                     thetas = np.linspace(0, 180, 100)
                     Fs = B_v * I_v * L_v * np.sin(np.radians(thetas))
@@ -1046,6 +1058,9 @@ with tab_physics:
                     
                     if dark_mode: plt.style.use('dark_background'); text_c = 'white'
                     else: plt.style.use('default'); text_c = 'black'
+                    
+                    apply_chinese_font() # 👈 强制注入中文字体
+                    
                     fig, ax = plt.subplots(figsize=(8, 3)); fig.patch.set_alpha(0.0); ax.patch.set_alpha(0.0)
                     labels = ['你的质量包含的能量', '小男孩原子弹 (作对比)']
                     values = [hiroshima_bombs, 1]
@@ -1071,6 +1086,9 @@ with tab_physics:
                     # 🌟 E-nu 线性正比关系图
                     if dark_mode: plt.style.use('dark_background'); c_line = '#00FFFF'
                     else: plt.style.use('default'); c_line = '#FF7F0e'
+                    
+                    apply_chinese_font() # 👈 强制注入中文字体
+                    
                     fig, ax = plt.subplots(figsize=(6, 3)); fig.patch.set_alpha(0.0); ax.patch.set_alpha(0.0)
                     nu_vals = np.linspace(nu_v * 0.1, nu_v * 3, 100)
                     E_vals = h * nu_vals
@@ -1101,6 +1119,8 @@ with tab_physics:
                         plt.style.use('default')
                         c_x, c_p, c_glow = '#1f77b4', '#ff7f0e', '#7b2ff7' 
                         text_c = 'black'
+                        
+                    apply_chinese_font() # 👈 强制注入中文字体
                         
                     fig = plt.figure(figsize=(10, 6))
                     fig.patch.set_alpha(0.0) 
@@ -1160,6 +1180,8 @@ with tab_physics:
                     Rs_val = 2 * G * M / (c**2)
                     if dark_mode: plt.style.use('dark_background'); disk_cmap = 'magma'
                     else: plt.style.use('default'); disk_cmap = 'plasma'
+                    
+                    apply_chinese_font() # 👈 强制注入中文字体
                         
                     fig = plt.figure(figsize=(6, 6))
                     ax = fig.add_subplot(111, projection='3d')
