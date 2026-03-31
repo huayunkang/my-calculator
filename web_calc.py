@@ -37,7 +37,7 @@ def apply_chinese_font():
 st.set_page_config(page_title="Ultra Max 计算器 Quantum", page_icon="🧮", layout="centered")
 
 # ==========================================
-# 🧚‍♀️ 萌物召唤模块：全屏可拖拽的看板小猫 (📱 Pointer 终极强锁版)
+# 🧚‍♀️ 萌物召唤模块：全屏可拖拽的看板小猫 (📱 移动端霸体拖拽版)
 # ==========================================
 def summon_mascot():
     mascot_code = """
@@ -52,8 +52,6 @@ def summon_mascot():
         mascot.style.zIndex = "999999";
         mascot.style.cursor = "grab";
         mascot.style.userSelect = "none";
-        
-        /* 🚨 极其关键：彻底禁止猫身上的默认浏览器手势（如页面放大、滑动） */
         mascot.style.touchAction = "none"; 
         
         mascot.innerHTML = '<img src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif" width="120px" style="pointer-events: none; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 3px solid #FF4B2B;"/>';
@@ -61,40 +59,48 @@ def summon_mascot():
 
         let isDragging = false, offsetX, offsetY;
 
-        // 🎯 终极杀器：Pointer Events (统一接管鼠标和手指触摸)
-        mascot.addEventListener('pointerdown', function(e) {
+        // 🖱️ 电脑端鼠标事件
+        mascot.onmousedown = function(e) {
             isDragging = true;
-            mascot.style.cursor = "grabbing";
-            
-            // 🔒 核心魔法：强制捕获手指点按！哪怕手指滑出猫的区域，猫也会死死跟着手指！
-            mascot.setPointerCapture(e.pointerId); 
-            
             offsetX = e.clientX - mascot.getBoundingClientRect().left;
             offsetY = e.clientY - mascot.getBoundingClientRect().top;
+            mascot.style.cursor = "grabbing";
             e.preventDefault(); 
-        });
-
-        mascot.addEventListener('pointermove', function(e) {
+        };
+        parentDoc.onmousemove = function(e) {
             if (isDragging) {
                 mascot.style.left = (e.clientX - offsetX) + "px";
                 mascot.style.top = (e.clientY - offsetY) + "px";
                 mascot.style.bottom = "auto";
                 mascot.style.right = "auto";
             }
-        });
+        };
+        parentDoc.onmouseup = function() { isDragging = false; mascot.style.cursor = "grab"; };
 
-        mascot.addEventListener('pointerup', function(e) {
-            isDragging = false;
-            mascot.style.cursor = "grab";
-            mascot.releasePointerCapture(e.pointerId); // 释放捕获
-        });
-        
-        // 防止系统打断（比如来电话了）
-        mascot.addEventListener('pointercancel', function(e) {
-            isDragging = false;
-            mascot.style.cursor = "grab";
-            mascot.releasePointerCapture(e.pointerId);
-        });
+        // 👆 手机/平板端触摸事件 (终极强锁版)
+        mascot.addEventListener('touchstart', function(e) {
+            // 🛑 核心杀招：手指一碰到猫，立刻禁止浏览器把这个动作识别为“滑页面”
+            e.preventDefault(); 
+            isDragging = true;
+            let touch = e.touches[0];
+            offsetX = touch.clientX - mascot.getBoundingClientRect().left;
+            offsetY = touch.clientY - mascot.getBoundingClientRect().top;
+        }, {passive: false}); // passive: false 允许我们使用 preventDefault
+
+        parentDoc.addEventListener('touchmove', function(e) {
+            if (isDragging) {
+                // 🛑 拖拽期间持续没收滚动权限
+                e.preventDefault(); 
+                let touch = e.touches[0];
+                mascot.style.left = (touch.clientX - offsetX) + "px";
+                mascot.style.top = (touch.clientY - offsetY) + "px";
+                mascot.style.bottom = "auto";
+                mascot.style.right = "auto";
+            }
+        }, {passive: false});
+
+        parentDoc.addEventListener('touchend', function() { isDragging = false; });
+        parentDoc.addEventListener('touchcancel', function() { isDragging = false; });
     }
     </script>
     """
