@@ -37,20 +37,17 @@ def apply_chinese_font():
 st.set_page_config(page_title="Ultra Max 计算器 Quantum", page_icon="🧮", layout="centered")
 
 # ==========================================
-# 🧚‍♀️ 萌物召唤模块：全屏可拖拽的看板小猫 (📱 移动端终极霸体+斩杀旧版本)
+# 🧚‍♀️ 萌物召唤模块：全屏可拖拽的看板小猫 (📱 移动端终极靶点追踪版)
 # ==========================================
 def summon_mascot():
     mascot_code = """
     <script>
     const parentDoc = window.parent.document;
     
-    // 🔪 核心修复：必须先杀掉前一个版本的“幽灵猫”，否则新代码永远不会生效！
+    // 🔪 先杀旧猫，防止幽灵代码干扰
     let oldCat = parentDoc.getElementById("cute-mascot");
-    if (oldCat) {
-        oldCat.remove();
-    }
+    if (oldCat) oldCat.remove();
 
-    // 重新创造一只拥有满血触控神经的新猫
     const mascot = parentDoc.createElement("div");
     mascot.id = "cute-mascot";
     mascot.style.position = "fixed";
@@ -59,48 +56,71 @@ def summon_mascot():
     mascot.style.zIndex = "999999";
     mascot.style.cursor = "grab";
     mascot.style.userSelect = "none";
-    mascot.style.touchAction = "none"; // 彻底封杀浏览器的滑动劫持
+    mascot.style.touchAction = "none"; // 禁止浏览器滑动劫持
     
-    // 加上 draggable="false" 防止图片自身的默认拖拽行为干扰
     mascot.innerHTML = '<img draggable="false" src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif" width="120px" style="pointer-events: none; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 3px solid #FF4B2B;"/>';
     parentDoc.body.appendChild(mascot);
 
-    let isDragging = false, offsetX, offsetY;
+    let isDragging = false;
+    let startX, startY, initialLeft, initialTop;
 
-    // 🎯 终极杀器：Pointer Events (统一接管鼠标和手指触摸)
-    mascot.addEventListener('pointerdown', function(e) {
+    // 🎯 核心追踪算法：记录按下的瞬间坐标，计算相对位移
+    function startDrag(clientX, clientY) {
         isDragging = true;
+        startX = clientX;
+        startY = clientY;
+        const rect = mascot.getBoundingClientRect();
+        initialLeft = rect.left;
+        initialTop = rect.top;
         
-        // 🔒 强制捕获手指点按！哪怕手指滑出猫的区域，猫也会死死跟着手指！
-        mascot.setPointerCapture(e.pointerId); 
+        // 瞬间将定位模式从 bottom/right 切换到 left/top，防止闪烁
+        mascot.style.bottom = "auto";
+        mascot.style.right = "auto";
+        mascot.style.left = initialLeft + "px";
+        mascot.style.top = initialTop + "px";
         mascot.style.cursor = "grabbing";
-        
-        offsetX = e.clientX - mascot.getBoundingClientRect().left;
-        offsetY = e.clientY - mascot.getBoundingClientRect().top;
-        e.preventDefault(); // 没收浏览器滑动权限
-    });
+    }
 
-    mascot.addEventListener('pointermove', function(e) {
-        if (isDragging) {
-            mascot.style.left = (e.clientX - offsetX) + "px";
-            mascot.style.top = (e.clientY - offsetY) + "px";
-            mascot.style.bottom = "auto";
-            mascot.style.right = "auto";
-            e.preventDefault(); // 拖拽时持续没收滑动权限
-        }
-    });
+    function drag(clientX, clientY) {
+        if (!isDragging) return;
+        const dx = clientX - startX;
+        const dy = clientY - startY;
+        mascot.style.left = (initialLeft + dx) + "px";
+        mascot.style.top = (initialTop + dy) + "px";
+    }
 
-    mascot.addEventListener('pointerup', function(e) {
+    function endDrag() {
         isDragging = false;
         mascot.style.cursor = "grab";
-        mascot.releasePointerCapture(e.pointerId); // 释放捕获
+    }
+
+    // 📱 ================= 手机/平板 专属触摸神经 ================= 📱
+    // 极其关键：把 touchmove 直接绑在 mascot 身上，而不是 parentDoc！
+    mascot.addEventListener('touchstart', function(e) {
+        e.preventDefault(); // 没收页面滚动权限
+        startDrag(e.touches[0].clientX, e.touches[0].clientY);
+    }, {passive: false});
+
+    mascot.addEventListener('touchmove', function(e) {
+        e.preventDefault(); // 持续没收滚动权限
+        drag(e.touches[0].clientX, e.touches[0].clientY);
+    }, {passive: false});
+
+    mascot.addEventListener('touchend', endDrag);
+    mascot.addEventListener('touchcancel', endDrag);
+
+    // 💻 ================= 电脑端 专属鼠标神经 ================= 💻
+    mascot.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        startDrag(e.clientX, e.clientY);
     });
 
-    mascot.addEventListener('pointercancel', function(e) {
-        isDragging = false;
-        mascot.style.cursor = "grab";
-        mascot.releasePointerCapture(e.pointerId);
+    parentDoc.addEventListener('mousemove', function(e) {
+        drag(e.clientX, e.clientY);
     });
+
+    parentDoc.addEventListener('mouseup', endDrag);
+    
     </script>
     """
     components.html(mascot_code, height=0, width=0)
