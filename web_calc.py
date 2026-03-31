@@ -5,29 +5,35 @@ import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 import streamlit.components.v1 as components
 import os
-import shutil
+import urllib.request
 
 # ==========================================
-# 🌟 修复 Matplotlib 中文乱码 (最硬核：绝对路径强行注入版)
+# 🌟 修复 Matplotlib 中文乱码 (终极降维打击版：自带字体包)
 # ==========================================
+@st.cache_resource
 def force_load_chinese_font():
-    # 1. 检测云端 Linux 服务器的字体标准路径
-    cloud_font_path = '/usr/share/fonts/truetype/wqy/wqy-microhei.ttc'
+    font_path = "SimHei.ttf"
     
-    # 调试信息：在页面显示字体是否存在（运行成功后可以删掉这行）
-    # st.write(f"🔍 调试：云端字体文件是否存在 -> {os.path.exists(cloud_font_path)}")
-
-    if os.path.exists(cloud_font_path):
-        # 2. 强行将字体文件注册到 Matplotlib 的经理部
-        fm.fontManager.addfont(cloud_font_path)
-        # 3. 动态获取该字体的官方内部名称
-        prop = fm.FontProperties(fname=cloud_font_path)
-        plt.rcParams['font.sans-serif'] = [prop.get_name()]
+    # 1. 既然 Linux 系统装字体靠不住，我们直接让 Python 现场下载一个！
+    if not os.path.exists(font_path):
+        # 使用高可用 CDN 极速下载经典黑体文件
+        font_url = "https://cdn.jsdelivr.net/gh/StellarCN/scp_zh@master/fonts/SimHei.ttf"
+        try:
+            urllib.request.urlretrieve(font_url, font_path)
+        except:
+            pass
+            
+    # 2. 强行把下载好的 .ttf 文件拍在 Matplotlib 桌子上
+    if os.path.exists(font_path):
+        fm.fontManager.addfont(font_path)
+        prop = fm.FontProperties(fname=font_path)
+        # 3. 将全局默认字体设置为这个确切的黑体
+        plt.rcParams['font.sans-serif'] = [prop.get_name(), 'sans-serif']
     else:
-        # 4. 如果是本地 Windows/Mac 运行，尝试使用系统常见中文字体
-        plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'PingFang SC', 'sans-serif']
-    
-    # 解决负号 '-' 显示为方块的问题
+        # 兜底
+        plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'sans-serif']
+        
+    # 解决坐标轴负号变方块的问题
     plt.rcParams['axes.unicode_minus'] = False
 
 force_load_chinese_font()
