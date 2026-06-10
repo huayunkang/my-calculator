@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
+from difflib import get_close_matches
 from tokenize import TokenError
 
 import sympy as sp
@@ -85,9 +87,38 @@ _DANGEROUS_PATTERNS = (
     "delattr",
 )
 
+_KNOWN_NAMES = tuple(
+    sorted({*DEFAULT_SYMBOLS, *SAFE_FUNCTIONS, *SAFE_CONSTANTS})
+)
+
 
 class InputParseError(ValueError):
     """An input error with a message suitable for display to end users."""
+
+
+@dataclass(frozen=True)
+class RepairResult:
+    original: str
+    repaired: str
+    automatic_changes: tuple[str, ...] = ()
+    suggestions: tuple[str, ...] = ()
+
+    @property
+    def changed(self) -> bool:
+        return self.original != self.repaired
+
+
+@dataclass(frozen=True)
+class FormulaAnalysis:
+    original: str
+    normalized: str
+    repaired: str
+    valid: bool
+    error_message: str | None
+    error_position: int | None
+    completions: tuple[str, ...]
+    automatic_changes: tuple[str, ...]
+    suggestions: tuple[str, ...]
 
 
 def normalize_math_input(text: str) -> str:
@@ -104,6 +135,110 @@ def normalize_math_input(text: str) -> str:
         normalized,
     )
     return normalized
+
+
+def repair_math_input(
+    text: str,
+    allowed_symbols: Mapping[str, sp.Symbol] | Iterable[str | sp.Symbol] | None = None,
+) -> RepairResult:
+    """Apply deterministic repairs and return ambiguous suggestions separately."""
+    original = "" if text is None else str(text)
+    repaired = normalize_math_input(original)
+    changes: list[str] = []
+    suggestions: list[str] = []
+
+    def apply(pattern: str, replacement: str, message: str) -> None:
+        nonlocal repaired
+        updated = re.sub(pattern, replacement, repaired)
+        if updated != repaired:
+            repaired = updated
+            changes.append(message)
+
+    apply(r"(?<![\d.])\.(\d)", r"0.\1", "补全小数点前的 0")
+    apply(r"(\d|\))\s*(?=[A-Za-z_(])", r"\1*", "补全省略的乘号")
+    apply(r"([A-Za-z_]\w*|\))\s*(?=\d)", r"\1*", "补全省略的乘号")
+
+    function_names = "|".join(
+        sorted((re.escape(name) for name in SAFE_FUNCTIONS), key=len, reverse=True)
+    )
+    repaired = re.sub(
+        rf"\b({function_names})\s*\*\s*\(",
+        r"\1(",
+        repaired,
+    )
+    repaired = re.sub(
+        rf"\b({function_names})\s+([A-Za-z0-9_.]+)",
+        r"\1(\2)",
+        repaired,
+    )
+
+    symbols = _symbol_dict(allowed_symbols)
+    allowed_names = {*symbols, *SAFE_FUNCTIONS, *SAFE_CONSTANTS}
+    identifier_source = _SCIENTIFIC_NUMBER_RE.sub("0", repaired)
+    for name in sorted(set(_IDENTIFIER_RE.findall(identifier_source)) - allowed_names):
+        matches = get_close_matches(name, allowed_names, n=2, cutoff=0.62)
+        if matches:
+            suggestions.append(f"“{name}”是否应为“{matches[0]}”？")
+
+    balance = repaired.count("(") - repaired.count(")")
+    if balance > 0:
+        repaired += ")" * balance
+        changes.append(f"补全 {balance} 个右括号")
+
+    return RepairResult(
+        original=original,
+        repaired=repaired,
+        automatic_changes=tuple(dict.fromkeys(changes)),
+        suggestions=tuple(dict.fromkeys(suggestions)),
+    )
+
+
+def analyze_formula(
+    text: str,
+    allowed_symbols: Mapping[str, sp.Symbol] | Iterable[str | sp.Symbol] | None = None,
+    numeric_only: bool = False,
+) -> FormulaAnalysis:
+    """Analyze an expression for live editor feedback."""
+    repair = repair_math_input(text, allowed_symbols)
+    error_message = None
+    error_position = None
+    valid = False
+    try:
+        parse_math_expr(repair.repaired, allowed_symbols, numeric_only=numeric_only)
+        valid = True
+    except InputParseError as exc:
+        error_message = str(exc)
+        unknown = re.search(r"不支持的变量或函数：([^。]+)", error_message)
+        if unknown:
+            error_position = repair.repaired.find(unknown.group(1).split("、")[0])
+        elif repair.repaired.count(")") > repair.repaired.count("("):
+            error_position = repair.repaired.rfind(")")
+
+    prefix_match = re.search(r"([A-Za-z_]\w*)$", normalize_math_input(text))
+    completions: tuple[str, ...] = ()
+    if prefix_match:
+        prefix = prefix_match.group(1)
+        names = sorted(
+            {
+                *_KNOWN_NAMES,
+                *_symbol_dict(allowed_symbols),
+            }
+        )
+        completions = tuple(
+            name for name in names if name.startswith(prefix) and name != prefix
+        )[:8]
+
+    return FormulaAnalysis(
+        original="" if text is None else str(text),
+        normalized=normalize_math_input(text),
+        repaired=repair.repaired,
+        valid=valid,
+        error_message=error_message,
+        error_position=error_position,
+        completions=completions,
+        automatic_changes=repair.automatic_changes,
+        suggestions=repair.suggestions,
+    )
 
 
 def _symbol_dict(
