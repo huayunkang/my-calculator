@@ -17,7 +17,18 @@ from calculator_core import (
     parse_vector,
     user_error_message,
 )
-from ui_components import render_formula_input
+from tool_pages import (
+    render_complex_calculator,
+    render_function_analysis,
+    render_physics_toolbox,
+    render_statistics_probability,
+    render_unit_converter,
+)
+from ui_components import (
+    add_calculation_history,
+    render_formula_input,
+    render_history_panel,
+)
 
 # ==========================================
 # 🌟 1. 终极中文字体守护引擎 (解决云端乱码)
@@ -43,6 +54,9 @@ def apply_chinese_font():
         plt.rcParams['font.sans-serif'] = [prop.get_name(), 'sans-serif']
         plt.rcParams['axes.unicode_minus'] = False 
 
+
+apply_chinese_font()
+
 # --- 基础配置 ---
 st.set_page_config(page_title="Ultra Max 计算器 Quantum", page_icon="🧮", layout="centered")
 
@@ -67,9 +81,10 @@ def summon_mascot():
     mascot.style.bottom = compactMode ? "12px" : "30px";
     mascot.style.right = compactMode ? "12px" : "30px";
     mascot.style.zIndex = "999999";
-    mascot.style.cursor = "grab";
+    mascot.style.cursor = compactMode ? "default" : "grab";
     mascot.style.userSelect = "none";
-    mascot.style.touchAction = "none"; // 禁止浏览器默认手势
+    mascot.style.touchAction = compactMode ? "pan-y" : "none";
+    mascot.style.pointerEvents = compactMode ? "none" : "auto";
     
     mascot.innerHTML = `<img draggable="false" src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif" width="${mascotSize}px" height="${mascotSize}px" style="pointer-events: none; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 3px solid #FF4B2B;"/>`;
     parentDoc.body.appendChild(mascot);
@@ -102,18 +117,20 @@ def summon_mascot():
         mascot.style.top = Math.min(maxTop, Math.max(0, initialTop + dy)) + "px";
     }
 
-    // 📱 手机/平板触控神经
-    mascot.addEventListener('touchstart', function(e) {
-        e.preventDefault(); e.stopPropagation(); // 阻止页面滚动
-        startDrag(e.touches[0].clientX, e.touches[0].clientY);
-    }, {passive: false});
+    // 手机端让触摸穿透，避免挂件阻止页面滚动或挡住输入。
+    if (!compactMode) {
+        mascot.addEventListener('touchstart', function(e) {
+            e.preventDefault(); e.stopPropagation();
+            startDrag(e.touches[0].clientX, e.touches[0].clientY);
+        }, {passive: false});
 
-    mascot.addEventListener('touchmove', function(e) {
-        e.preventDefault(); e.stopPropagation();
-        moveDrag(e.touches[0].clientX, e.touches[0].clientY);
-    }, {passive: false});
+        mascot.addEventListener('touchmove', function(e) {
+            e.preventDefault(); e.stopPropagation();
+            moveDrag(e.touches[0].clientX, e.touches[0].clientY);
+        }, {passive: false});
 
-    mascot.addEventListener('touchend', () => { isDragging = false; });
+        mascot.addEventListener('touchend', () => { isDragging = false; });
+    }
 
     // 💻 电脑鼠标神经
     mascot.addEventListener('mousedown', (e) => { e.preventDefault(); startDrag(e.clientX, e.clientY); });
@@ -139,9 +156,12 @@ TOOL_GROUPS = {
         "📐 向量",
         "🏺 旋转面",
         "〰️ 曲线积分",
+        "📈 函数分析",
+        "📊 统计概率",
+        "🌀 复数计算",
     ],
-    "程序员工具": ["💻 程序员"],
-    "物理工具": ["🍎 物理引擎"],
+    "实用工具": ["🔁 单位换算", "💻 程序员"],
+    "物理工具": ["🧪 物理工具箱", "🌌 高级物理演示"],
 }
 
 if "active_tool" not in st.session_state:
@@ -168,6 +188,7 @@ with st.sidebar:
     st.markdown("---")
     dark_mode = st.toggle("🌙 星空夜景模式", key="dark_mode")
     st.caption("支持 ^、×、÷、√、π 等常用数学符号。")
+    render_history_panel()
 
 selected_tool = st.session_state.active_tool
 
@@ -345,6 +366,12 @@ if selected_tool == "📚 微积分":
                 st.latex(f"= {sp.latex(simplified)}")
             if simplified.is_number and not simplified.has(sp.oo):
                 st.info(f"**近似数值:** `{simplified.evalf():.6f}`")
+            add_calculation_history(
+                "普通计算",
+                expr_str,
+                str(simplified),
+                input_key="math_expr",
+            )
         except Exception as error:
             st.error(user_error_message(error, "公式计算失败，请检查输入。"))
 
@@ -361,6 +388,12 @@ if selected_tool == "📚 微积分":
                 st.markdown("**3. 得出导函数:**")
                 st.latex(f"f'(x) = {sp.latex(result)}")
             plot_graph(result)
+            add_calculation_history(
+                "求导",
+                expr_str,
+                str(result),
+                input_key="math_expr",
+            )
         except Exception as error:
             st.error(user_error_message(error, "求导失败，请检查公式定义域。"))
 
@@ -375,6 +408,12 @@ if selected_tool == "📚 微积分":
                 st.markdown("**2. 求解反导数:**")
                 st.latex(f"= {sp.latex(result)} + C")
             plot_graph(result)
+            add_calculation_history(
+                "不定积分",
+                expr_str,
+                str(result),
+                input_key="math_expr",
+            )
         except Exception as error:
             st.error(user_error_message(error, "不定积分失败，请检查公式。"))
 
@@ -397,6 +436,12 @@ if selected_tool == "📚 微积分":
                 st.latex(f"= {sp.latex(result)}")
             st.info(f"**近似数值:** `{result.evalf():.4f}`")
             plot_graph(func, float(a.evalf()), float(b.evalf()))
+            add_calculation_history(
+                "定积分",
+                f"{expr_str}; {a}→{b}",
+                str(result),
+                input_key="math_expr",
+            )
         except Exception as error:
             st.error(user_error_message(error, "定积分失败，请检查上下限和公式。"))
 
@@ -447,6 +492,12 @@ if selected_tool == "🔍 解方程":
                     for idx, sol in enumerate(solution):
                         sol_latex = ", \\quad ".join([f"{sp.latex(var)} = {sp.latex(val)}" for var, val in sol.items()])
                         st.latex(f"\\text{{解 }} {idx + 1}: \\quad {sol_latex}")
+                add_calculation_history(
+                    "解方程",
+                    eq_str,
+                    str(solution),
+                    input_key="eq_expr",
+                )
         except Exception as error:
             st.error(user_error_message(error, "方程求解失败，请检查方程格式。"))
 # ------------------------------------------
@@ -486,6 +537,12 @@ if selected_tool == "➕ 级数":
                 st.latex(f"= {sp.latex(result)}")
             if result.is_number and not result.has(sp.oo):
                 st.info(f"**近似数值:** `{result.evalf():.6f}`")
+            add_calculation_history(
+                "级数求和",
+                sum_expr_str,
+                str(result),
+                input_key="sum_expr",
+            )
         except Exception as error:
             st.error(user_error_message(error, "级数求和失败，请检查范围和通项。"))
 
@@ -859,10 +916,28 @@ if selected_tool == "〰️ 曲线积分":
         except Exception as error:
             st.error(user_error_message(error, "曲线积分失败，请确保参数方程只使用变量 t。"))
 
+# ------------------------------------------
+# 新增实用工具
+# ------------------------------------------
+if selected_tool == "📈 函数分析":
+    render_function_analysis(dark_mode)
+
+if selected_tool == "📊 统计概率":
+    render_statistics_probability(dark_mode)
+
+if selected_tool == "🌀 复数计算":
+    render_complex_calculator(dark_mode)
+
+if selected_tool == "🔁 单位换算":
+    render_unit_converter()
+
+if selected_tool == "🧪 物理工具箱":
+    render_physics_toolbox(dark_mode)
+
 # ==========================================
 # 第十页：物理引擎 (量子与宇宙终极法则 Ultra 版)
 # ==========================================
-if selected_tool == "🍎 物理引擎":
+if selected_tool == "🌌 高级物理演示":
     st.markdown("### 🌌 宇宙真理解析引擎 (Physics Engine Quantum Plus)")
     
     # 一级菜单：选择物理学分支
@@ -1298,5 +1373,4 @@ if selected_tool == "🍎 物理引擎":
                     st.pyplot(fig)
                 except Exception as error:
                     st.error(user_error_message(error, "黑洞熵计算或绘图失败，数值可能超出范围。"))
-
 
