@@ -6,6 +6,18 @@ import matplotlib.font_manager as fm
 import streamlit.components.v1 as components
 import os
 import urllib.request
+from urllib.error import URLError
+
+from calculator_core import (
+    InputParseError,
+    parse_equations,
+    parse_math_expr,
+    parse_matrix,
+    parse_numeric,
+    parse_vector,
+    user_error_message,
+)
+from ui_components import render_formula_input
 
 # ==========================================
 # 🌟 1. 终极中文字体守护引擎 (解决云端乱码)
@@ -16,8 +28,10 @@ def get_font_path():
     local_path = "SimHei.ttf"
     if not os.path.exists(local_path):
         url = "https://cdn.jsdelivr.net/gh/StellarCN/scp_zh@master/fonts/SimHei.ttf"
-        try: urllib.request.urlretrieve(url, local_path)
-        except: pass
+        try:
+            urllib.request.urlretrieve(url, local_path)
+        except (OSError, URLError):
+            pass
     return local_path if os.path.exists(local_path) else None
 
 def apply_chinese_font():
@@ -39,6 +53,7 @@ def summon_mascot():
     mascot_code = """
     <script>
     const parentDoc = window.parent.document;
+    const parentWindow = window.parent;
     
     // 🔪 斩杀旧猫：防止热更新后旧的事件监听器残留在内存里卡死页面
     let oldCat = parentDoc.getElementById("cute-mascot");
@@ -47,14 +62,16 @@ def summon_mascot():
     const mascot = parentDoc.createElement("div");
     mascot.id = "cute-mascot";
     mascot.style.position = "fixed";
-    mascot.style.bottom = "30px";
-    mascot.style.right = "30px";
+    const compactMode = parentWindow.matchMedia("(max-width: 768px)").matches;
+    const mascotSize = compactMode ? 72 : 120;
+    mascot.style.bottom = compactMode ? "12px" : "30px";
+    mascot.style.right = compactMode ? "12px" : "30px";
     mascot.style.zIndex = "999999";
     mascot.style.cursor = "grab";
     mascot.style.userSelect = "none";
     mascot.style.touchAction = "none"; // 禁止浏览器默认手势
     
-    mascot.innerHTML = '<img draggable="false" src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif" width="120px" style="pointer-events: none; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 3px solid #FF4B2B;"/>';
+    mascot.innerHTML = `<img draggable="false" src="https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif" width="${mascotSize}px" height="${mascotSize}px" style="pointer-events: none; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 3px solid #FF4B2B;"/>`;
     parentDoc.body.appendChild(mascot);
 
     let isDragging = false;
@@ -79,8 +96,10 @@ def summon_mascot():
         if (!isDragging) return;
         const dx = clientX - startX;
         const dy = clientY - startY;
-        mascot.style.left = (initialLeft + dx) + "px";
-        mascot.style.top = (initialTop + dy) + "px";
+        const maxLeft = Math.max(0, parentWindow.innerWidth - mascot.offsetWidth);
+        const maxTop = Math.max(0, parentWindow.innerHeight - mascot.offsetHeight);
+        mascot.style.left = Math.min(maxLeft, Math.max(0, initialLeft + dx)) + "px";
+        mascot.style.top = Math.min(maxTop, Math.max(0, initialTop + dy)) + "px";
     }
 
     // 📱 手机/平板触控神经
@@ -110,9 +129,50 @@ summon_mascot()
 # ==========================================
 # 3. 页面标题
 # ==========================================
+TOOL_GROUPS = {
+    "数学工具": [
+        "📚 微积分",
+        "🔍 解方程",
+        "➕ 级数",
+        "🌀 多重积分",
+        "🧮 线性代数",
+        "📐 向量",
+        "🏺 旋转面",
+        "〰️ 曲线积分",
+    ],
+    "程序员工具": ["💻 程序员"],
+    "物理工具": ["🍎 物理引擎"],
+}
+
+if "active_tool" not in st.session_state:
+    st.session_state.active_tool = TOOL_GROUPS["数学工具"][0]
+
+
+def select_tool(tool_name):
+    st.session_state.active_tool = tool_name
+
+
+with st.sidebar:
+    st.markdown("## 🧮 功能导航")
+    for group_name, tools in TOOL_GROUPS.items():
+        st.markdown(f"### {group_name}")
+        for tool_name in tools:
+            st.button(
+                tool_name,
+                key=f"nav_{tool_name}",
+                type="primary" if st.session_state.active_tool == tool_name else "secondary",
+                use_container_width=True,
+                on_click=select_tool,
+                args=(tool_name,),
+            )
+    st.markdown("---")
+    dark_mode = st.toggle("🌙 星空夜景模式", key="dark_mode")
+    st.caption("支持 ^、×、÷、√、π 等常用数学符号。")
+
+selected_tool = st.session_state.active_tool
+
 st.markdown('<div class="title-text">🧮 Ultra Max 计算器 Quantum</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle-text">超级微积分神器 • 风景赛博版</div>', unsafe_allow_html=True)
-dark_mode = st.toggle("🌙 一键开启星空夜景模式 (全局生效)")
 
 # ==========================================
 # 🎨 4. 视觉引擎：动态 CSS 注入 (📱 彻底修复平板滑动卡死)
@@ -150,6 +210,20 @@ custom_style = f"""
             overflow: auto !important;
             height: auto !important;
         }}
+        .block-container {{
+            padding: 20px 14px 96px !important;
+            border-radius: 14px;
+        }}
+        .title-text {{ font-size: 30px; line-height: 1.2; }}
+        .subtitle-text {{ margin-bottom: 18px; }}
+        div.stButton > button {{
+            min-height: 46px;
+            padding: 8px 10px;
+            touch-action: manipulation;
+        }}
+        div.stTextInput input, div.stTextArea textarea {{
+            font-size: 16px !important;
+        }}
     }}
 
     .stApp::before {{
@@ -173,16 +247,21 @@ custom_style = f"""
     
     div.stButton > button {{
         border-radius: 12px; border: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;
+        min-height: 42px;
+        cursor: pointer;
+    }}
+    div.stButton > button[kind="primary"] {{
+        box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.55), 0 6px 16px rgba(79, 70, 229, 0.3);
+        font-weight: 700;
     }}
     div.stTextInput > div > div > input {{ background-color: {input_bg}; color: {text_color}; }}
+    div.stTextArea textarea {{ background-color: {input_bg}; color: {text_color}; }}
     p, span, label, div[data-testid="stMarkdownContainer"] {{ color: {text_color} !important; }}
-    
-    /* ----- 3. 玻璃态标签栏 ----- */
-    div[data-baseweb="tab-list"] > button {{ background: transparent !important; opacity: 0.6; }}
-    div[data-baseweb="tab-list"] > button[aria-selected="true"] {{
-        opacity: 1 !important; border-bottom: 3px solid #00FFFF !important;
+    div[data-testid="stSidebar"] {{
+        background-color: {card_bg};
+        backdrop-filter: blur(12px);
     }}
-    div[data-baseweb="tab-list"] svg {{ fill: {text_color} !important; }}
+    *:focus-visible {{ outline: 3px solid #00bcd4 !important; outline-offset: 2px; }}
 </style>
 """
 st.markdown(custom_style, unsafe_allow_html=True)
@@ -190,27 +269,8 @@ st.markdown(custom_style, unsafe_allow_html=True)
 # ==========================================
 # 5. 状态机与变量定义
 # ==========================================
-if "math_expr" not in st.session_state: st.session_state.math_expr = "x**2 - 5*x + 6"
-def add_to_expr(text): st.session_state.math_expr += text
-def clear_expr(): st.session_state.math_expr = ""
-
-if "eq_expr" not in st.session_state: st.session_state.eq_expr = "x**2 - 5*x + 6 = 0"
-def add_to_eq(text): st.session_state.eq_expr += text
-def clear_eq(): st.session_state.eq_expr = ""
-
-if "sum_expr" not in st.session_state: st.session_state.sum_expr = "n**2"
-def add_to_sum(text): st.session_state.sum_expr += text
-def clear_sum(): st.session_state.sum_expr = ""
-
-if "multi_expr" not in st.session_state: st.session_state.multi_expr = "x * y"
-def add_to_multi(text): st.session_state.multi_expr += text
-def clear_multi(): st.session_state.multi_expr = ""
-
 x, y, z, n, i, k, t = sp.symbols('x y z n i k t')
-
-tab_math, tab_eq, tab_sum, tab_multi, tab_linalg, tab_prog, tab_vector, tab_surface, tab_line, tab_physics = st.tabs(
-    ["📚 微积分", "🔍 解方程", "➕ 级数", "🌀 多重积分", "🧮 线性代数", "💻 程序员", "📐 向量", "🏺 旋转面", "〰️ 曲线积分", "🍎 物理引擎"]
-)
+ALL_SYMBOLS = {"x": x, "y": y, "z": z, "n": n, "i": i, "k": k, "t": t}
 
 # ==========================================
 # 📈 6. 统一绘图函数
@@ -247,28 +307,17 @@ def plot_graph(func, fill_a=None, fill_b=None):
 # ------------------------------------------
 # 第一页：微积分 
 # ------------------------------------------
-with tab_math:
-    with st.expander("🎹 点击展开科学计算快捷键盘"):
-        b1, b2, b3, b4 = st.columns(4)
-        # 🌟 加上了直观的 Unicode 数学符号提示
-        b1.button("📐 sin(", on_click=add_to_expr, args=("sin(",))
-        b2.button("📐 cos(", on_click=add_to_expr, args=("cos(",))
-        b3.button("📐 tan(", on_click=add_to_expr, args=("tan(",))
-        b4.button("π (圆周率)", on_click=add_to_expr, args=("pi",))
-        
-        b5, b6, b7, b8 = st.columns(4)
-        b5.button("㏒ log(", on_click=add_to_expr, args=("log(",))
-        b6.button("ℯˣ exp(", on_click=add_to_expr, args=("exp(",))
-        b7.button("√ sqrt(", on_click=add_to_expr, args=("sqrt(",))
-        b8.button("ℯ (自然底数)", on_click=add_to_expr, args=("E",))
-
-        b9, b10, b11, b12 = st.columns(4)
-        b9.button("𝒙 (变量)", on_click=add_to_expr, args=("x",))
-        b10.button("xʸ (** 乘方)", on_click=add_to_expr, args=("**",))
-        b11.button("( ) 闭合括号", on_click=add_to_expr, args=(")",))
-        b12.button("🗑️ 清空", on_click=clear_expr)
-
-    expr_str = st.text_input("请输入算式:", key="math_expr")
+if selected_tool == "📚 微积分":
+    st.markdown("### 📚 微积分计算")
+    expr_str = render_formula_input(
+        "请输入算式",
+        key="math_expr",
+        default="x^2 - 5×x + 6",
+        allowed_symbols={"x": x},
+        examples=("x^2 - 5*x + 6", "sin(x)^2 + cos(x)^2", "√(x^2 + 1)"),
+        help_text="支持 ^、×、÷、√、π；变量使用 x。",
+        extra_tokens=(("x", "x"), ("e", "E"), ("exp", "exp(")),
+    )
     
     st.markdown("**(可选) 定积分上下限设置：**")
     col_a, col_b = st.columns(2)
@@ -279,7 +328,7 @@ with tab_math:
 
     if col1.button("🟰 普通计算"):
         try:
-            expr = sp.sympify(expr_str)
+            expr = parse_math_expr(expr_str, {"x": x})
             simplified = sp.simplify(expr)
             expanded = sp.expand(expr)
             st.success("计算成功！")
@@ -296,11 +345,12 @@ with tab_math:
                 st.latex(f"= {sp.latex(simplified)}")
             if simplified.is_number and not simplified.has(sp.oo):
                 st.info(f"**近似数值:** `{simplified.evalf():.6f}`")
-        except: st.error("公式格式有误！")
+        except Exception as error:
+            st.error(user_error_message(error, "公式计算失败，请检查输入。"))
 
     if col2.button("📈 求导数"):
         try:
-            func = sp.sympify(expr_str)
+            func = parse_math_expr(expr_str, {"x": x})
             result = sp.diff(func, x)
             st.success("求导成功！")
             with st.expander("👀 查看求导详细过程", expanded=True):
@@ -311,11 +361,12 @@ with tab_math:
                 st.markdown("**3. 得出导函数:**")
                 st.latex(f"f'(x) = {sp.latex(result)}")
             plot_graph(result)
-        except: st.error("求导失败！")
+        except Exception as error:
+            st.error(user_error_message(error, "求导失败，请检查公式定义域。"))
 
     if col3.button("📉 不定积分"):
         try:
-            func = sp.sympify(expr_str)
+            func = parse_math_expr(expr_str, {"x": x})
             result = sp.integrate(func, x)
             st.success("不定积分成功！")
             with st.expander("👀 查看积分详细过程", expanded=True):
@@ -324,12 +375,14 @@ with tab_math:
                 st.markdown("**2. 求解反导数:**")
                 st.latex(f"= {sp.latex(result)} + C")
             plot_graph(result)
-        except: st.error("不定积分失败！")
+        except Exception as error:
+            st.error(user_error_message(error, "不定积分失败，请检查公式。"))
 
     if col4.button("📊 定积分"):
         try:
-            func = sp.sympify(expr_str)
-            a, b = sp.sympify(lower_limit_str), sp.sympify(upper_limit_str)
+            func = parse_math_expr(expr_str, {"x": x})
+            a = parse_math_expr(lower_limit_str, {}, numeric_only=True)
+            b = parse_math_expr(upper_limit_str, {}, numeric_only=True)
             result = sp.integrate(func, (x, a, b))
             anti_deriv = sp.integrate(func, x) 
             st.success("定积分计算成功！")
@@ -344,46 +397,32 @@ with tab_math:
                 st.latex(f"= {sp.latex(result)}")
             st.info(f"**近似数值:** `{result.evalf():.4f}`")
             plot_graph(func, float(a.evalf()), float(b.evalf()))
-        except: st.error("计算失败！")
+        except Exception as error:
+            st.error(user_error_message(error, "定积分失败，请检查上下限和公式。"))
 
 # ------------------------------------------
 # 第二页：解方程
 # ------------------------------------------
-with tab_eq:
+if selected_tool == "🔍 解方程":
     st.markdown("### 🔍 智能方程求解器")
-    
-    # 🌟 新增：解方程专属键盘
-    with st.expander("🎹 点击展开方程快捷键盘"):
-        # 第一排：变量与等号
-        eb1, eb2, eb3, eb4 = st.columns(4)
-        eb1.button("𝒙 (变量x)", key="eq_x", on_click=add_to_eq, args=("x",))
-        eb2.button("𝒚 (变量y)", key="eq_y", on_click=add_to_eq, args=("y",))
-        eb3.button("𝒛 (变量z)", key="eq_z", on_click=add_to_eq, args=("z",))
-        eb4.button("= (等号)", key="eq_equal", on_click=add_to_eq, args=("=",))
-
-        # 第二排：乘方、根号、分隔符、清空
-        eb5, eb6, eb7, eb8 = st.columns(4)
-        eb5.button("xʸ (** 乘方)", key="eq_pow", on_click=add_to_eq, args=("**",))
-        eb6.button("√ sqrt(", key="eq_sqrt", on_click=add_to_eq, args=("sqrt(",))
-        eb7.button(", (方程分隔符)", key="eq_comma", on_click=add_to_eq, args=(", ",))
-        eb8.button("🗑️ 清空", key="eq_clear", on_click=clear_eq)
-
-    # 🌟 注意这里：key 被绑定到了 "eq_expr"，彻底和微积分页面脱钩
-    eq_str = st.text_input("请输入方程 (用逗号隔开):", key="eq_expr")
+    eq_str = render_formula_input(
+        "请输入方程（每行一个，也可用逗号分隔）",
+        key="eq_expr",
+        default="x^2 - 5*x + 6 = 0",
+        allowed_symbols={"x": x, "y": y, "z": z},
+        examples=("x^2 - 5*x + 6 = 0", "x + y = 3\nx - y = 1"),
+        multiline=True,
+        preview=False,
+        help_text="例如：x+y=3，换行后输入 x-y=1。",
+        extra_tokens=(("x", "x"), ("y", "y"), ("z", "z"), ("=", "="), ("换行", "\n")),
+    )
     
     if st.button("🚀 解方程并查看过程"):
         try:
-            eq_list, standard_forms = [], []
-            for eq in eq_str.split(','):
-                eq = eq.strip()
-                if not eq: continue
-                if '=' in eq:
-                    left, right = eq.split('=')
-                    eq_list.append(sp.Eq(sp.sympify(left), sp.sympify(right)))
-                    standard_forms.append(sp.sympify(left) - sp.sympify(right))
-                else:
-                    eq_list.append(sp.sympify(eq))
-                    standard_forms.append(sp.sympify(eq))
+            eq_list, standard_forms = parse_equations(
+                eq_str,
+                {"x": x, "y": y, "z": z},
+            )
                     
             solution = sp.solve(eq_list, dict=True)
             if not solution: st.warning("⚠️ 无解或格式有误。")
@@ -402,34 +441,28 @@ with tab_eq:
                             if factored != standard_forms[0]:
                                 st.markdown("**第三步：多项式因式分解**")
                                 st.latex(f"{sp.latex(factored)} = 0")
-                        except: pass
+                        except (TypeError, ValueError, sp.PolynomialError):
+                            pass
                     st.markdown("**最终解集:**")
                     for idx, sol in enumerate(solution):
                         sol_latex = ", \\quad ".join([f"{sp.latex(var)} = {sp.latex(val)}" for var, val in sol.items()])
                         st.latex(f"\\text{{解 }} {idx + 1}: \\quad {sol_latex}")
-        except: st.error("解析失败！")
+        except Exception as error:
+            st.error(user_error_message(error, "方程求解失败，请检查方程格式。"))
 # ------------------------------------------
 # 第三页：级数求和
 # ------------------------------------------
-with tab_sum:
+if selected_tool == "➕ 级数":
     st.markdown("### ➕ 西格玛 (Σ) 求和神器")
-    
-    # 🌟 新增：级数专属键盘
-    with st.expander("🎹 点击展开级数快捷键盘"):
-        sb1, sb2, sb3, sb4 = st.columns(4)
-        sb1.button("𝒏 (变量n)", key="sum_n", on_click=add_to_sum, args=("n",))
-        sb2.button("𝒊 (变量i)", key="sum_i", on_click=add_to_sum, args=("i",))
-        sb3.button("𝒌 (变量k)", key="sum_k", on_click=add_to_sum, args=("k",))
-        sb4.button("∞ (无穷大)", key="sum_oo", on_click=add_to_sum, args=("oo",))
-
-        sb5, sb6, sb7, sb8 = st.columns(4)
-        sb5.button("xʸ (** 乘方)", key="sum_pow", on_click=add_to_sum, args=("**",))
-        sb6.button("( ) 括号", key="sum_bracket", on_click=add_to_sum, args=("()",))
-        sb7.button("/ (除号)", key="sum_div", on_click=add_to_sum, args=("/",))
-        sb8.button("🗑️ 清空", key="sum_clear", on_click=clear_sum)
-
-    # 🌟 绑定到级数专属的 key
-    sum_expr_str = st.text_input("求和通项公式:", key="sum_expr")
+    sum_expr_str = render_formula_input(
+        "求和通项公式",
+        key="sum_expr",
+        default="n^2",
+        allowed_symbols={"n": n, "i": i, "k": k},
+        examples=("n^2", "1/n^2", "2^n"),
+        help_text="变量可使用 n、i 或 k。",
+        extra_tokens=(("n", "n"), ("i", "i"), ("k", "k"), ("∞", "∞")),
+    )
     
     col_s1, col_s2 = st.columns(2)
     sum_lower_str = col_s1.text_input("求和下限:", value="1")
@@ -437,11 +470,12 @@ with tab_sum:
     
     if st.button("🧮 计算级数求和"):
         try:
-            func_sum = sp.sympify(sum_expr_str)
+            func_sum = parse_math_expr(sum_expr_str, {"n": n, "i": i, "k": k})
             free_vars = func_sum.free_symbols
             var = n if n in free_vars else (i if i in free_vars else (k if k in free_vars else x))
             if not func_sum.free_symbols: var = n 
-            lower, upper = sp.sympify(sum_lower_str), sp.sympify(sum_upper_str)
+            lower = parse_math_expr(sum_lower_str, {}, numeric_only=True)
+            upper = parse_math_expr(sum_upper_str, {}, numeric_only=True)
             sum_obj = sp.Sum(func_sum, (var, lower, upper))
             result = sum_obj.doit()
             st.success("🎉 求和计算成功！")
@@ -452,32 +486,26 @@ with tab_sum:
                 st.latex(f"= {sp.latex(result)}")
             if result.is_number and not result.has(sp.oo):
                 st.info(f"**近似数值:** `{result.evalf():.6f}`")
-        except: st.error("计算失败！")
+        except Exception as error:
+            st.error(user_error_message(error, "级数求和失败，请检查范围和通项。"))
 
 # ------------------------------------------
 # 第四页：多重积分
 # ------------------------------------------
-with tab_multi:
+if selected_tool == "🌀 多重积分":
     st.markdown("### 🌀 空间多重积分求解")
     int_type = st.radio("请选择积分维度:", ["∬ 二重积分", "∭ 三重积分"], horizontal=True)
     is_triple = "三重" in int_type
     
-    # 🌟 新增：多重积分专属键盘
-    with st.expander("🎹 点击展开空间积分快捷键盘"):
-        mb1, mb2, mb3, mb4 = st.columns(4)
-        mb1.button("𝒙 (变量x)", key="mul_x", on_click=add_to_multi, args=("x",))
-        mb2.button("𝒚 (变量y)", key="mul_y", on_click=add_to_multi, args=("y",))
-        mb3.button("𝒛 (变量z)", key="mul_z", on_click=add_to_multi, args=("z",))
-        mb4.button("π (圆周率)", key="mul_pi", on_click=add_to_multi, args=("pi",))
-
-        mb5, mb6, mb7, mb8 = st.columns(4)
-        mb5.button("📐 sin(", key="mul_sin", on_click=add_to_multi, args=("sin(",))
-        mb6.button("📐 cos(", key="mul_cos", on_click=add_to_multi, args=("cos(",))
-        mb7.button("xʸ (** 乘方)", key="mul_pow", on_click=add_to_multi, args=("**",))
-        mb8.button("🗑️ 清空", key="mul_clear", on_click=clear_multi)
-
-    # 🌟 绑定到多重积分专属的 key
-    multi_expr = st.text_input("被积函数 f(x,y,z):", key="multi_expr")
+    multi_expr = render_formula_input(
+        "被积函数 f(x,y,z)",
+        key="multi_expr",
+        default="x × y",
+        allowed_symbols={"x": x, "y": y, "z": z},
+        examples=("x*y", "x^2 + y^2", "sin(x)*cos(y)"),
+        help_text="二重积分使用 x、y；三重积分还可使用 z。",
+        extra_tokens=(("x", "x"), ("y", "y"), ("z", "z")),
+    )
     
     st.markdown("**最外层积分 (dx):**")
     c_x1, c_x2 = st.columns(2)
@@ -517,16 +545,20 @@ with tab_multi:
             if isinstance(Z, (int, float)): Z = np.full_like(X, Z)
             ax.plot_surface(X, Y, Z, alpha=0.9, cmap=cmap_hl, edgecolor='none')
             st.pyplot(fig)
-        except: st.warning("⚠️ 3D 渲染跳过 (边界过于复杂)")
+        except (TypeError, ValueError, OverflowError):
+            st.warning("⚠️ 当前边界无法转换为可绘制的有限数值，已跳过 3D 图。")
 
     if st.button("🌀 发动多重积分魔法 "):
         try:
-            f = sp.sympify(multi_expr)
-            xl, xu = sp.sympify(xl_str), sp.sympify(xu_str)
-            yl, yu = sp.sympify(yl_str), sp.sympify(yu_str)
+            f = parse_math_expr(multi_expr, {"x": x, "y": y, "z": z})
+            xl = parse_math_expr(xl_str, {}, numeric_only=True)
+            xu = parse_math_expr(xu_str, {}, numeric_only=True)
+            yl = parse_math_expr(yl_str, {"x": x})
+            yu = parse_math_expr(yu_str, {"x": x})
             
             if is_triple:
-                zl, zu = sp.sympify(zl_str), sp.sympify(zu_str)
+                zl = parse_math_expr(zl_str, {"x": x, "y": y})
+                zu = parse_math_expr(zu_str, {"x": x, "y": y})
                 step1 = sp.integrate(f, (z, zl, zu))
                 step2 = sp.integrate(step1, (y, yl, yu))
                 result = sp.integrate(step2, (x, xl, xu))
@@ -554,25 +586,16 @@ with tab_multi:
                 plot_3d_integral(f, xl, xu, yl, yu)
             if result.is_number and not result.has(sp.oo): 
                 st.info(f"**近似数值:** `{result.evalf():.6f}`")
-        except: st.error("计算失败！")
+        except Exception as error:
+            st.error(user_error_message(error, "多重积分失败，请检查积分顺序和边界。"))
 # ------------------------------------------
 # 第五页：线性代数与矩阵
 # ------------------------------------------
-with tab_linalg:
+if selected_tool == "🧮 线性代数":
     st.markdown("### 🧮 智能矩阵运算中心")
     col_m1, col_m2 = st.columns(2)
     mat_A_str = col_m1.text_area("输入矩阵 A:", value="1 2\n3 4", height=120)
     mat_B_str = col_m2.text_area("输入矩阵 B (可选):", value="5 6\n7 8", height=120)
-
-    def parse_matrix(matrix_string):
-        if not matrix_string.strip(): return None
-        rows = matrix_string.strip().split('\n')
-        matrix_data = []
-        for row in rows:
-            elements = row.replace(',', ' ').split()
-            if elements:
-                matrix_data.append([sp.sympify(e) for e in elements])
-        return sp.Matrix(matrix_data)
 
     btn1, btn2, btn3, btn4, btn5 = st.columns(5)
     
@@ -580,7 +603,8 @@ with tab_linalg:
         try:
             A, B = parse_matrix(mat_A_str), parse_matrix(mat_B_str)
             st.latex(f"{sp.latex(A)} + {sp.latex(B)} = {sp.latex(A + B)}")
-        except Exception: st.error("❌ 计算失败！")
+        except Exception as error:
+            st.error(user_error_message(error, "矩阵加法失败，请确认 A、B 维度一致。"))
 
     if btn2.button("A × B (相乘)"):
         try:
@@ -589,13 +613,15 @@ with tab_linalg:
             st.success("✅ 矩阵乘法计算成功！")
             with st.expander("👀 查看矩阵相乘形态", expanded=True):
                 st.latex(f"{sp.latex(A)} \\times {sp.latex(B)} = {sp.latex(result)}")
-        except Exception: st.error("❌ 计算失败！")
+        except Exception as error:
+            st.error(user_error_message(error, "矩阵乘法失败，请确认 A 的列数等于 B 的行数。"))
 
     if btn3.button("| A | (行列式)"):
         try:
             A = parse_matrix(mat_A_str)
             st.latex(f"\\det({sp.latex(A)}) = {sp.latex(A.det())}")
-        except Exception: st.error("❌ 计算失败！")
+        except Exception as error:
+            st.error(user_error_message(error, "行列式仅适用于方阵。"))
 
     if btn4.button("A⁻¹ (求逆)"):
         try:
@@ -609,23 +635,25 @@ with tab_linalg:
                 st.latex(f"|A| = {sp.latex(A.det())}")
                 st.markdown("**3. 逆矩阵 $A^{-1}$:**")
                 st.latex(f"A^{{-1}} = {sp.latex(result)}")
-        except Exception: st.error("❌ 计算失败，不可逆或非方阵！")
+        except Exception as error:
+            st.error(user_error_message(error, "矩阵不可逆，请确认它是行列式非零的方阵。"))
         
     if btn5.button("Aᵀ (转置)"):
         try:
             A = parse_matrix(mat_A_str)
             st.latex(f"{sp.latex(A)}^T = {sp.latex(A.T)}")
-        except Exception: st.error("❌ 解析失败！")
+        except Exception as error:
+            st.error(user_error_message(error, "矩阵解析失败。"))
 
 # ------------------------------------------
 # 第六页：程序员(进制)
 # ------------------------------------------
-with tab_prog:
+if selected_tool == "💻 程序员":
     st.markdown("### 🔢 实时进制转换")
     prog_expr = st.text_input("请输入整数或算式:", value="255", key="prog_input")
     if prog_expr:
         try:
-            val_expr = sp.sympify(prog_expr)
+            val_expr = parse_math_expr(prog_expr, {}, numeric_only=True)
             if val_expr.is_integer:
                 val = int(val_expr)
                 c1, c2, c3, c4 = st.columns(4)
@@ -633,61 +661,74 @@ with tab_prog:
                 c2.metric(label="二进制 (BIN)", value=bin(val))
                 c3.metric(label="八进制 (OCT)", value=oct(val))
                 c4.metric(label="十六进制 (HEX)", value=hex(val))
-        except Exception: pass
+            else:
+                st.info("请输入结果为整数的算式，例如 2^8 - 1。")
+        except Exception as error:
+            st.error(user_error_message(error, "无法转换该输入。"))
 
 # ------------------------------------------
 # 第七页：向量计算
 # ------------------------------------------
-with tab_vector:
+if selected_tool == "📐 向量":
     st.markdown("### 📐 空间向量计算器")
     vc1, vc2 = st.columns(2)
     vecA_str = vc1.text_input("向量 $\\vec{A}$:", value="1, 2, 3")
     vecB_str = vc2.text_input("向量 $\\vec{B}$:", value="4, 5, 6")
     
-    def parse_vec(v_str):
-        return sp.Matrix([sp.sympify(e) for e in v_str.split(',')])
-
     vb1, vb2, vb3, vb4 = st.columns(4)
     if vb1.button("$\\vec{A} + \\vec{B}$"):
         try:
-            A, B = parse_vec(vecA_str), parse_vec(vecB_str)
+            A, B = parse_vector(vecA_str), parse_vector(vecB_str)
             st.latex(f"\\vec{{A}} + \\vec{{B}} = {sp.latex(A + B)}")
-        except: st.error("格式错误！")
+        except Exception as error:
+            st.error(user_error_message(error, "向量相加失败，请确认维度一致。"))
             
     if vb2.button("内积 (点乘)"):
         try:
-            A, B = parse_vec(vecA_str), parse_vec(vecB_str)
+            A, B = parse_vector(vecA_str), parse_vector(vecB_str)
             result = A.dot(B)
             st.success("✅ 点乘计算完成")
             with st.expander("👀 查看内积公式", expanded=True):
                 st.latex(f"\\vec{{A}} \\cdot \\vec{{B}} = ({sp.latex(A.T)}) \\cdot ({sp.latex(B.T)})")
                 st.latex(f"= {sp.latex(result)}")
-        except: st.error("格式或维度错误！")
+        except Exception as error:
+            st.error(user_error_message(error, "点乘失败，请确认两个向量维度一致。"))
             
     if vb3.button("外积 (叉乘)"):
         try:
-            A, B = parse_vec(vecA_str), parse_vec(vecB_str)
+            A, B = parse_vector(vecA_str), parse_vector(vecB_str)
             if len(A) != 3 or len(B) != 3: st.warning("⚠️ 叉乘主要适用于三维向量！")
             else:
                 result = A.cross(B)
                 st.success("✅ 叉乘计算完成")
                 with st.expander("👀 查看外积公式", expanded=True):
                     st.latex(f"\\vec{{A}} \\times \\vec{{B}} = {sp.latex(result)}")
-        except: st.error("格式错误！")
+        except Exception as error:
+            st.error(user_error_message(error, "叉乘失败，请输入两个三维向量。"))
             
     if vb4.button("求模长 $|\\vec{A}|$"):
         try:
-            A = parse_vec(vecA_str)
+            A = parse_vector(vecA_str)
             st.latex(f"|\\vec{{A}}| = {sp.latex(A.norm())}")
-        except: st.error("格式错误！")
+        except Exception as error:
+            st.error(user_error_message(error, "向量解析失败。"))
 
 # ------------------------------------------
 # 第八页：旋转面方程
 # ------------------------------------------
-with tab_surface:
+if selected_tool == "🏺 旋转面":
     st.markdown("### 🏺 旋转曲面生成器")
     sc1, sc2 = st.columns([2, 1])
-    curve_str = sc1.text_input("输入平面曲线方程 (如表示 $y=x^2$，输入 $x**2$):", value="x**2")
+    with sc1:
+        curve_str = render_formula_input(
+            "输入平面曲线表达式",
+            key="surface_curve",
+            default="x^2",
+            allowed_symbols={"x": x, "y": y},
+            examples=("x^2", "sin(x)", "√(x)"),
+            help_text="绕 x 轴时通常输入关于 x 的表达式；绕 y 轴时输入关于 y 的表达式。",
+            extra_tokens=(("x", "x"), ("y", "y")),
+        )
     axis = sc2.radio("绕哪个轴旋转?", ["x轴", "y轴"], horizontal=True)
     
     st.markdown("**3D 渲染范围设置：**")
@@ -697,7 +738,7 @@ with tab_surface:
     
     if st.button("✨ 自动推导 & 3D渲染"):
         try:
-            f = sp.sympify(curve_str)
+            f = parse_math_expr(curve_str, {"x": x, "y": y})
             free_vars = f.free_symbols
             var = list(free_vars)[0] if free_vars else x
             
@@ -722,7 +763,11 @@ with tab_surface:
                 plt.style.use('default')
                 cmap_color = 'plasma'
 
-            v_vals = np.linspace(float(sp.sympify(plot_start).evalf()), float(sp.sympify(plot_end).evalf()), 100)
+            plot_start_value = parse_numeric(plot_start)
+            plot_end_value = parse_numeric(plot_end)
+            if plot_start_value >= plot_end_value:
+                raise InputParseError("参数起点必须小于终点。")
+            v_vals = np.linspace(plot_start_value, plot_end_value, 100)
             theta_vals = np.linspace(0, 2 * np.pi, 100)
             V, Theta = np.meshgrid(v_vals, theta_vals)
             
@@ -736,29 +781,60 @@ with tab_surface:
             ax.plot_surface(X, Y, Z, cmap=cmap_color, alpha=0.9, edgecolor='none')
             ax.set_xlabel('X Axis'); ax.set_ylabel('Y Axis'); ax.set_zlabel('Z Axis')
             st.pyplot(fig)
-        except Exception as e:
-            st.error(f"解析失败！请检查数学表达式。")
+        except Exception as error:
+            st.error(user_error_message(error, "旋转面生成失败，请检查公式和绘图范围。"))
 
 # ------------------------------------------
 # 第九页：曲线积分
 # ------------------------------------------
-with tab_line:
+if selected_tool == "〰️ 曲线积分":
     st.markdown("### 〰️ 第二类曲线积分 (力场做功)")
     lc1, lc2 = st.columns(2)
-    P_str = lc1.text_input("向量场 $P(x, y)$:", value="y")
-    Q_str = lc2.text_input("向量场 $Q(x, y)$:", value="x**2")
+    with lc1:
+        P_str = render_formula_input(
+            "向量场 P(x, y)",
+            key="line_p",
+            default="y",
+            allowed_symbols={"x": x, "y": y},
+            show_keypad=False,
+        )
+    with lc2:
+        Q_str = render_formula_input(
+            "向量场 Q(x, y)",
+            key="line_q",
+            default="x^2",
+            allowed_symbols={"x": x, "y": y},
+            show_keypad=False,
+        )
     lc3, lc4 = st.columns(2)
-    xt_str = lc3.text_input("曲线参数 $x(t)$:", value="t")
-    yt_str = lc4.text_input("曲线参数 $y(t)$:", value="t**2")
+    with lc3:
+        xt_str = render_formula_input(
+            "曲线参数 x(t)",
+            key="line_xt",
+            default="t",
+            allowed_symbols={"t": t},
+            show_keypad=False,
+        )
+    with lc4:
+        yt_str = render_formula_input(
+            "曲线参数 y(t)",
+            key="line_yt",
+            default="t^2",
+            allowed_symbols={"t": t},
+            show_keypad=False,
+        )
     lc5, lc6 = st.columns(2)
     t_start_str = lc5.text_input("参数 $t$ 起点:", value="0")
     t_end_str = lc6.text_input("参数 $t$ 终点:", value="1")
     
     if st.button("🚀 计算做功积分并看步骤"):
         try:
-            P, Q = sp.sympify(P_str), sp.sympify(Q_str)
-            x_t, y_t = sp.sympify(xt_str), sp.sympify(yt_str)
-            t_start, t_end = sp.sympify(t_start_str), sp.sympify(t_end_str)
+            P = parse_math_expr(P_str, {"x": x, "y": y})
+            Q = parse_math_expr(Q_str, {"x": x, "y": y})
+            x_t = parse_math_expr(xt_str, {"t": t})
+            y_t = parse_math_expr(yt_str, {"t": t})
+            t_start = parse_math_expr(t_start_str, {}, numeric_only=True)
+            t_end = parse_math_expr(t_end_str, {}, numeric_only=True)
             
             P_t, Q_t = P.subs({x: x_t, y: y_t}), Q.subs({x: x_t, y: y_t})
             dx_dt, dy_dt = sp.diff(x_t, t), sp.diff(y_t, t)
@@ -780,13 +856,13 @@ with tab_line:
                 st.latex(f"\\int_{{{sp.latex(t_start)}}}^{{{sp.latex(t_end)}}} \\left( {sp.latex(sp.simplify(integrand))} \\right) dt")
                 st.markdown("**6. 最终计算结果:**")
                 st.latex(f"= {sp.latex(result)}")
-        except:
-            st.error("计算失败！请确保参数使用了变量 t。")
+        except Exception as error:
+            st.error(user_error_message(error, "曲线积分失败，请确保参数方程只使用变量 t。"))
 
 # ==========================================
 # 第十页：物理引擎 (量子与宇宙终极法则 Ultra 版)
 # ==========================================
-with tab_physics:
+if selected_tool == "🍎 物理引擎":
     st.markdown("### 🌌 宇宙真理解析引擎 (Physics Engine Quantum Plus)")
     
     # 一级菜单：选择物理学分支
@@ -819,29 +895,44 @@ with tab_physics:
                 c1, c2, c3 = st.columns(3)
                 m1_str, m2_str, r_str = c1.text_input("质量 $m_1$ (kg):", value="5.97e24", key="g_m1"), c2.text_input("质量 $m_2$ (kg):", value="70", key="g_m2"), c3.text_input("距离 $r$ (m):", value="6.371e6", key="g_r")
                 if st.button("🚀 计算万有引力", key="btn_g"):
-                    try: F = sp.sympify("6.6743e-11") * (sp.sympify(m1_str) * sp.sympify(m2_str)) / (sp.sympify(r_str)**2); st.latex(f"F = {sp.latex(sp.simplify(F))} \\text{{ N}}"); st.info(f"**近似数值:** `{float(F.evalf()):.4e} N`")
-                    except: st.error("输入格式有误！")
+                    try:
+                        m1 = parse_numeric(m1_str, non_negative=True)
+                        m2 = parse_numeric(m2_str, non_negative=True)
+                        radius = parse_numeric(r_str, positive=True)
+                        F = 6.6743e-11 * m1 * m2 / radius**2
+                        st.latex(f"F = {F:.6e} \\text{{ N}}")
+                    except Exception as error:
+                        st.error(user_error_message(error, "万有引力计算失败。"))
             elif "第二定律" in creator:
                 st.info("公式: $F = m a$")
                 c1, c2 = st.columns(2)
                 m_str, a_str = c1.text_input("质量 $m$ (kg):", value="10", key="n2_m"), c2.text_input("加速度 $a$ (m/s²):", value="9.8", key="n2_a")
                 if st.button("🚀 计算合外力", key="btn_n2"):
-                    try: F = sp.sympify(m_str) * sp.sympify(a_str); st.latex(f"F = {sp.latex(sp.simplify(F))} \\text{{ N}}")
-                    except: st.error("输入有误！")
+                    try:
+                        F = parse_numeric(m_str, non_negative=True) * parse_numeric(a_str)
+                        st.latex(f"F = {F:.6g} \\text{{ N}}")
+                    except Exception as error:
+                        st.error(user_error_message(error, "合外力计算失败。"))
             elif "胡克" in creator:
                 st.info("公式: $F = -k x$")
                 c1, c2 = st.columns(2)
                 k_str, x_str = c1.text_input("劲度系数 $k$ (N/m):", value="500", key="hk_k"), c2.text_input("形变量 $x$ (m):", value="0.2", key="hk_x")
                 if st.button("🚀 计算弹力", key="btn_hk"):
-                    try: st.latex(f"|F| = {sp.latex(sp.sympify(k_str) * sp.sympify(x_str))} \\text{{ N}}")
-                    except: st.error("输入有误！")
+                    try:
+                        force = parse_numeric(k_str, non_negative=True) * abs(parse_numeric(x_str))
+                        st.latex(f"|F| = {force:.6g} \\text{{ N}}")
+                    except Exception as error:
+                        st.error(user_error_message(error, "弹力计算失败。"))
             elif "摩擦力" in creator:
                 st.info("公式: $f = \\mu F_N$")
                 c1, c2 = st.columns(2)
                 mu_str, fn_str = c1.text_input("摩擦因数 $\\mu$:", value="0.3", key="fr_mu"), c2.text_input("正压力 $F_N$ (N):", value="98", key="fr_fn")
                 if st.button("🚀 计算摩擦力", key="btn_fr"):
-                    try: st.latex(f"f = {sp.latex(sp.sympify(mu_str) * sp.sympify(fn_str))} \\text{{ N}}")
-                    except: st.error("输入有误！")
+                    try:
+                        friction = parse_numeric(mu_str, non_negative=True) * parse_numeric(fn_str, non_negative=True)
+                        st.latex(f"f = {friction:.6g} \\text{{ N}}")
+                    except Exception as error:
+                        st.error(user_error_message(error, "摩擦力计算失败。"))
 
         elif "抛体运动" in mech_sub:
             st.markdown("#### ☄️ 抛体运动可视化引擎")
@@ -850,7 +941,12 @@ with tab_physics:
             v0_s, t_s, g_s = pc1.text_input("初速度 $v_0$ (m/s):", value="20", key="pr_v0"), pc2.text_input("发射角 $\\theta$ (°):", value="45", key="pr_theta"), pc3.text_input("重力加速 $g$:", value="9.8", key="pr_g")
             if st.button("☄️ 绘制轨迹", key="btn_pr"):
                 try:
-                    v0, theta, g_v = float(sp.sympify(v0_s)), float(sp.sympify(t_s)), float(sp.sympify(g_s)); theta_rad = np.radians(theta)
+                    v0 = parse_numeric(v0_s, non_negative=True)
+                    theta = parse_numeric(t_s)
+                    g_v = parse_numeric(g_s, positive=True)
+                    if not 0 <= theta <= 90:
+                        raise InputParseError("发射角应在 0° 到 90° 之间。")
+                    theta_rad = np.radians(theta)
                     t_flight = 2 * v0 * np.sin(theta_rad) / g_v
                     if dark_mode: plt.style.use('dark_background'); line_color = '#00ffcc'
                     else: plt.style.use('default'); line_color = '#FF4B2B'
@@ -861,7 +957,8 @@ with tab_physics:
                     x_v, y_v = v0 * np.cos(theta_rad) * t_vals, v0 * np.sin(theta_rad) * t_vals - 0.5 * g_v * t_vals**2
                     ax.plot(x_v, y_v, color=line_color, lw=3); ax.fill_between(x_v, y_v, alpha=0.2, color=line_color); ax.set_xlabel("水平距离 X (m)", color=line_color); ax.set_ylabel("竖直高度 Y (m)", color=line_color); ax.set_ylim(bottom=0); ax.grid(True, linestyle='--', alpha=0.3)
                     st.pyplot(fig); st.info(f"射程: `{x_v[-1]:.2f} 米`, 最大高度: `{np.max(y_v):.2f} 米`")
-                except: st.error("作图失败！请确保输入确切数值。")
+                except Exception as error:
+                    st.error(user_error_message(error, "抛体轨迹绘制失败。"))
 
         elif "纳维" in mech_sub:
             st.markdown("#### 🌊 纳维-斯托克斯方程 (Navier-Stokes Equations)")
@@ -887,14 +984,24 @@ with tab_physics:
             col1, col2, col3 = st.columns(3)
             n_str, T_str, V_str = col1.text_input("物质的量 $n$ (mol):", value="1", key="ig_n"), col2.text_input("绝对温度 $T$ (K):", value="298.15", key="ig_T"), col3.text_input("体积 $V$ (m³):", value="0.0224", key="ig_V")
             if st.button("🔥 计算压强", key="btn_ig"):
-                try: P = (sp.sympify(n_str) * sp.sympify("8.314") * sp.sympify(T_str)) / sp.sympify(V_str); st.latex(f"P = {sp.latex(sp.simplify(P))} \\text{{ Pa}}")
-                except: st.error("输入有误！")
+                try:
+                    amount = parse_numeric(n_str, non_negative=True)
+                    temperature = parse_numeric(T_str, positive=True)
+                    volume = parse_numeric(V_str, positive=True)
+                    pressure = amount * 8.314 * temperature / volume
+                    st.latex(f"P = {pressure:.6e} \\text{{ Pa}}")
+                except Exception as error:
+                    st.error(user_error_message(error, "压强计算失败。"))
         elif "黑体" in creator:
             st.info("公式: $j^{\\star} = \\sigma T^4$")
             T_str = st.text_input("绝对温度 $T$ (K):", value="5778", key="sb_T") 
             if st.button("🔥 计算辐射出射度", key="btn_sb"):
-                try: j = sp.sympify("5.67037e-8") * (sp.sympify(T_str)**4); st.latex(f"j^{{\\star}} \\approx {float(j.evalf()):.4e} \\text{{ W/m}}^2")
-                except: st.error("输入有误！")
+                try:
+                    temperature = parse_numeric(T_str, positive=True)
+                    radiation = 5.67037e-8 * temperature**4
+                    st.latex(f"j^{{\\star}} \\approx {radiation:.4e} \\text{{ W/m}}^2")
+                except Exception as error:
+                    st.error(user_error_message(error, "辐射出射度计算失败。"))
                 
         elif "熵增" in creator:
             st.markdown("#### 🔥 热力学第二定律 (The Second Law: Entropy Increase)")
@@ -946,7 +1053,9 @@ with tab_physics:
             q1_s, q2_s, r_s = col1.text_input("电荷 $q_1$ (C):", value="1e-6", key="cb_q1"), col2.text_input("电荷 $q_2$ (C):", value="1e-6", key="cb_q2"), col3.text_input("距离 $r$ (m):", value="0.1", key="cb_r")
             if st.button("⚡ 计算库仑力并作图", key="btn_cb"):
                 try:
-                    q1_v, q2_v, r_v = float(sp.sympify(q1_s)), float(sp.sympify(q2_s)), float(sp.sympify(r_s))
+                    q1_v = parse_numeric(q1_s)
+                    q2_v = parse_numeric(q2_s)
+                    r_v = parse_numeric(r_s, positive=True)
                     k_e = 8.98755e9
                     F_val = k_e * (q1_v * q2_v) / (r_v**2)
                     st.success("推导完成！")
@@ -961,12 +1070,13 @@ with tab_physics:
                     fig, ax = plt.subplots(figsize=(6, 3)); fig.patch.set_alpha(0.0); ax.patch.set_alpha(0.0)
                     r_vals = np.linspace(r_v * 0.2, r_v * 4, 100)
                     F_vals = k_e * (q1_v * q2_v) / (r_vals**2)
-                    ax.plot(r_vals, np.abs(F_vals), color=c_line, lw=2, label="$F \propto 1/r^2$")
+                    ax.plot(r_vals, np.abs(F_vals), color=c_line, lw=2, label=r"$F \propto 1/r^2$")
                     ax.scatter([r_v], [np.abs(F_val)], color='#FF00FF', s=100, zorder=5, label="当前位置")
                     ax.set_xlabel("距离 r (m)", color=c_line); ax.set_ylabel("受力大小 |F| (N)", color=c_line)
                     ax.grid(True, linestyle='--', alpha=0.3); ax.legend()
                     st.pyplot(fig)
-                except: st.error("输入有误！")
+                except Exception as error:
+                    st.error(user_error_message(error, "库仑力计算失败。"))
                 
         elif "安培" in creator:
             st.info("公式: $F = B I L \\sin(\\theta)$")
@@ -974,7 +1084,12 @@ with tab_physics:
             B_s, I_s, L_s, t_s = c1.text_input("磁场 $B$ (T):", value="0.5", key="am_B"), c2.text_input("电流 $I$ (A):", value="2", key="am_I"), c3.text_input("长度 $L$ (m):", value="1", key="am_L"), c4.text_input("夹角 $\\theta$ (°):", value="90", key="am_t")
             if st.button("⚡ 计算安培力并作图", key="btn_am"):
                 try:
-                    B_v, I_v, L_v, t_v = float(sp.sympify(B_s)), float(sp.sympify(I_s)), float(sp.sympify(L_s)), float(sp.sympify(t_s))
+                    B_v = parse_numeric(B_s, non_negative=True)
+                    I_v = parse_numeric(I_s)
+                    L_v = parse_numeric(L_s, non_negative=True)
+                    t_v = parse_numeric(t_s)
+                    if not 0 <= t_v <= 180:
+                        raise InputParseError("夹角应在 0° 到 180° 之间。")
                     F_val = B_v * I_v * L_v * np.sin(np.radians(t_v))
                     st.success("推导完成！")
                     st.latex(f"F = {F_val:.4f} \\text{{ N}}")
@@ -993,7 +1108,8 @@ with tab_physics:
                     ax.set_xlabel("夹角 $\\theta$ (度)", color=c_line); ax.set_ylabel("安培力 F (N)", color=c_line)
                     ax.grid(True, linestyle='--', alpha=0.3); ax.legend()
                     st.pyplot(fig)
-                except: st.error("输入有误！")
+                except Exception as error:
+                    st.error(user_error_message(error, "安培力计算失败。"))
                 
         elif "法拉第" in creator:
             st.info("公式: $\\mathcal{E} = -N \\frac{\\Delta \\Phi}{\\Delta t}$")
@@ -1001,11 +1117,14 @@ with tab_physics:
             N_s, dp_s, dt_s = c1.text_input("线圈匝数 $N$:", value="100", key="fa_N"), c2.text_input("磁通变化 $\\Delta \\Phi$ (Wb):", value="0.05", key="fa_dPhi"), c3.text_input("时间 $\\Delta t$ (s):", value="0.1", key="fa_dt")
             if st.button("⚡ 计算电动势", key="btn_fa"):
                 try:
-                    N_v, dp_v, dt_v = float(sp.sympify(N_s)), float(sp.sympify(dp_s)), float(sp.sympify(dt_s))
+                    N_v = parse_numeric(N_s, positive=True)
+                    dp_v = parse_numeric(dp_s)
+                    dt_v = parse_numeric(dt_s, positive=True)
                     E_val = N_v * (dp_v / dt_v)
                     st.success("推导完成！")
                     st.latex(f"|\\mathcal{{E}}| = {E_val:.4f} \\text{{ V}}")
-                except: st.error("输入有误！")
+                except Exception as error:
+                    st.error(user_error_message(error, "电动势计算失败。"))
     # ==========================================
     # 🚀 近代物理 & 量子力学 (终极带图版)
     # ==========================================
@@ -1018,7 +1137,7 @@ with tab_physics:
             m_s = st.text_input("湮灭质量 $m$ (kg):", value="1", key="emc_m")
             if st.button("🚀 计算能量当量可视化", key="btn_emc"):
                 try:
-                    m_v = float(sp.sympify(m_s))
+                    m_v = parse_numeric(m_s, non_negative=True)
                     c = 299792458
                     E_val = m_v * (c**2)
                     st.success("推导完成！")
@@ -1041,7 +1160,8 @@ with tab_physics:
                     ax.set_xscale('log') # 使用对数坐标
                     st.pyplot(fig)
                     st.caption(f"💥 **直观感受:** 你输入的质量完全湮灭，相当于 `{hiroshima_bombs:.2e}` 枚广岛原子弹爆炸的能量！")
-                except: st.error("输入格式有误！")
+                except Exception as error:
+                    st.error(user_error_message(error, "质能换算失败。"))
 
         elif "普朗克" in creator:
             st.markdown("#### ⚡ 普朗克-爱因斯坦关系 (Planck-Einstein Relation)")
@@ -1049,7 +1169,7 @@ with tab_physics:
             nu_str = st.text_input("请输入光子频率 $\\nu$ (Hz) [可见光约 5e14]:", value="5e14", key="pe_nu")
             if st.button("⚡ 计算光子能量", key="btn_pe"):
                 try:
-                    nu_v = float(sp.sympify(nu_str))
+                    nu_v = parse_numeric(nu_str, positive=True)
                     h = 6.62607e-34
                     E_val = h * nu_v
                     st.success("推导完成！")
@@ -1069,16 +1189,17 @@ with tab_physics:
                     ax.set_xlabel("频率 $\\nu$ (Hz)", color=c_line); ax.set_ylabel("能量 E (J)", color=c_line)
                     ax.grid(True, linestyle='--', alpha=0.3); ax.legend()
                     st.pyplot(fig)
-                except: st.error("输入格式有误！")
+                except Exception as error:
+                    st.error(user_error_message(error, "光子能量计算失败。"))
 
         elif "海森堡" in creator:
             st.markdown("#### 🌀 海森堡不确定性原理 (Heisenberg Uncertainty Principle)")
-            st.info("公式: $\\Delta x \\Delta p \ge \\frac{\\hbar}{2}$")
+            st.info(r"公式: $\Delta x \Delta p \ge \frac{\hbar}{2}$")
             dx_str = st.text_input("预设位置不确定性 $\\Delta x$ (m) [例: 1e-10]:", value="1e-10", key="unc_dx")
             
             if st.button("🌀 发动量子仿真 (无惧刻度崩溃版)", key="btn_unc"):
                 try:
-                    dx = float(sp.sympify(dx_str).evalf())
+                    dx = parse_numeric(dx_str, positive=True)
                     hbar = 1.05457e-34 
                     dp_min = hbar / (2 * dx) 
                     st.success(f"计算完成！最小动量不确定性 $\\Delta p_{{min}}$: `{dp_min:.2e} kg·m/s`")
@@ -1120,7 +1241,8 @@ with tab_physics:
                     
                     plt.tight_layout()
                     st.pyplot(fig)
-                except Exception as e: st.error(f"作图失败: {e}")
+                except Exception as error:
+                    st.error(user_error_message(error, "不确定性仿真失败。"))
 
         elif "霍金" in creator:
             st.markdown("#### 🏺 贝肯斯坦-霍金熵公式 (Bekenstein-Hawking Entropy Formula)")
@@ -1137,10 +1259,10 @@ with tab_physics:
                 try:
                     kB, c, hbar, G = 1.38065e-23, 299792458, 1.05457e-34, 6.6743e-11
                     if "面积" in input_mode:
-                        A = float(sp.sympify(A_str))
+                        A = parse_numeric(A_str, positive=True)
                         M = (c**2) * np.sqrt(A / (16 * np.pi * G**2))
                     else:
-                        M = float(sp.sympify(M_str))
+                        M = parse_numeric(M_str, positive=True)
                         A = 16 * np.pi * (G**2) * (M**2) / (c**4)
                         st.info(f"推导视界面积 $A \\approx$ `{A:.4e}` m²")
 
@@ -1174,4 +1296,7 @@ with tab_physics:
                     
                     ax.set_xlim([-Rs_val*3, Rs_val*3]); ax.set_ylim([-Rs_val*3, Rs_val*3]); ax.set_zlim([-Rs_val*3, Rs_val*3])
                     st.pyplot(fig)
-                except Exception as e: st.error("作图失败，数值溢出。")
+                except Exception as error:
+                    st.error(user_error_message(error, "黑洞熵计算或绘图失败，数值可能超出范围。"))
+
+
