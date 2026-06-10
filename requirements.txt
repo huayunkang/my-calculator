@@ -1,3 +1,4 @@
-sympy
-numpy
-matplotlib
+streamlit==1.55.0
+sympy==1.14.0
+numpy==2.4.3
+matplotlib==3.10.8
