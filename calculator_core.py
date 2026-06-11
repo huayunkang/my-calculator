@@ -7,6 +7,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from difflib import get_close_matches
 from tokenize import TokenError
+import unicodedata
 
 import sympy as sp
 
@@ -62,8 +63,22 @@ _TRANSLATION_TABLE = str.maketrans(
         "（": "(",
         "）": ")",
         "，": ",",
+        "；": ";",
+        "：": ":",
+        "＝": "=",
+        "＋": "+",
+        "－": "-",
+        "＊": "*",
+        "／": "/",
+        "＾": "^",
+        "．": ".",
+        "　": " ",
         "【": "(",
         "】": ")",
+        "｛": "(",
+        "｝": ")",
+        "［": "(",
+        "］": ")",
     }
 )
 
@@ -97,11 +112,21 @@ class InputParseError(ValueError):
 
 
 @dataclass(frozen=True)
+class InputChange:
+    original: str
+    replacement: str
+    position: int
+    reason: str
+    requires_confirmation: bool = False
+
+
+@dataclass(frozen=True)
 class RepairResult:
     original: str
     repaired: str
     automatic_changes: tuple[str, ...] = ()
     suggestions: tuple[str, ...] = ()
+    changes: tuple[InputChange, ...] = ()
 
     @property
     def changed(self) -> bool:
@@ -119,14 +144,32 @@ class FormulaAnalysis:
     completions: tuple[str, ...]
     automatic_changes: tuple[str, ...]
     suggestions: tuple[str, ...]
+    changes: tuple[InputChange, ...] = ()
 
 
-def normalize_math_input(text: str) -> str:
+def _normalize_character(character: str) -> str:
+    translated = character.translate(_TRANSLATION_TABLE)
+    if translated != character:
+        return translated
+    normalized = unicodedata.normalize("NFKC", character)
+    return normalized if normalized != character else character
+
+
+def normalize_math_input(text: str, context: str = "expression") -> str:
     """Convert common mathematical symbols to SymPy-compatible syntax."""
     if text is None:
         return ""
 
-    normalized = str(text).strip().translate(_TRANSLATION_TABLE)
+    normalized = "".join(_normalize_character(char) for char in str(text)).strip()
+    if context == "equations":
+        normalized = normalized.replace(";", "\n")
+    elif context == "matrix":
+        normalized = normalized.replace(";", "\n")
+    elif context not in {"expression", "vector", "numeric"}:
+        raise ValueError(f"Unsupported input context: {context}")
+
+    normalized = re.sub(r"(?<=\d)[。](?=\d)", ".", normalized)
+    normalized = re.sub(r"(?<![A-Za-z0-9_)])[。](?=\d)", ".", normalized)
     normalized = re.sub(r"(?<!\*)\^(?!\*)", "**", normalized)
     normalized = re.sub(r"√\s*\(([^()]*)\)", r"sqrt(\1)", normalized)
     normalized = re.sub(
@@ -140,23 +183,70 @@ def normalize_math_input(text: str) -> str:
 def repair_math_input(
     text: str,
     allowed_symbols: Mapping[str, sp.Symbol] | Iterable[str | sp.Symbol] | None = None,
+    context: str = "expression",
 ) -> RepairResult:
     """Apply deterministic repairs and return ambiguous suggestions separately."""
     original = "" if text is None else str(text)
-    repaired = normalize_math_input(original)
-    changes: list[str] = []
+    normalized_chars: list[str] = []
+    input_changes: list[InputChange] = []
+    for position, character in enumerate(original):
+        replacement = _normalize_character(character)
+        if replacement != character:
+            input_changes.append(
+                InputChange(
+                    character,
+                    replacement,
+                    position,
+                    "转换中文或全角字符",
+                )
+            )
+        normalized_chars.append(replacement)
+
+    for match in re.finditer(
+        r"(?:(?<=\d)|(?<![A-Za-z0-9_)]))。(?=\d)",
+        original,
+    ):
+        input_changes.append(
+            InputChange("。", ".", match.start(), "将数字之间的中文句号作为小数点")
+        )
+
+    repaired = normalize_math_input("".join(normalized_chars), context=context)
+    changes: list[str] = list(
+        dict.fromkeys(
+            item.reason for item in input_changes if not item.requires_confirmation
+        )
+    )
     suggestions: list[str] = []
 
     def apply(pattern: str, replacement: str, message: str) -> None:
         nonlocal repaired
+        match = re.search(pattern, repaired)
         updated = re.sub(pattern, replacement, repaired)
         if updated != repaired:
+            if match:
+                input_changes.append(
+                    InputChange(
+                        match.group(0),
+                        re.sub(pattern, replacement, match.group(0)),
+                        match.start(),
+                        message,
+                    )
+                )
             repaired = updated
             changes.append(message)
 
     apply(r"(?<![\d.])\.(\d)", r"0.\1", "补全小数点前的 0")
-    apply(r"(\d|\))\s*(?=[A-Za-z_(])", r"\1*", "补全省略的乘号")
-    apply(r"([A-Za-z_]\w*|\))\s*(?=\d)", r"\1*", "补全省略的乘号")
+    apply(
+        r"(\d|\))\s*(?=(?![eE][+-]?\d)[A-Za-z_(])",
+        r"\1*",
+        "补全省略的乘号",
+    )
+    apply(
+        r"([A-DF-Za-df-z_]\w*|\))\s*(?=\d)",
+        r"\1*",
+        "补全省略的乘号",
+    )
+    apply(r"(?<!\*)\+\s*\+", "+", "合并重复的加号")
 
     function_names = "|".join(
         sorted((re.escape(name) for name in SAFE_FUNCTIONS), key=len, reverse=True)
@@ -179,9 +269,28 @@ def repair_math_input(
         matches = get_close_matches(name, allowed_names, n=2, cutoff=0.62)
         if matches:
             suggestions.append(f"“{name}”是否应为“{matches[0]}”？")
+            input_changes.append(
+                InputChange(
+                    name,
+                    matches[0],
+                    repaired.find(name),
+                    "函数或变量名称可能拼写错误",
+                    True,
+                )
+            )
+
+    if "。" in repaired:
+        position = repaired.find("。")
+        suggestions.append("检测到中文句号；如果它表示小数点，请确认替换为“.”。")
+        input_changes.append(
+            InputChange("。", ".", position, "中文句号可能是小数点", True)
+        )
 
     balance = repaired.count("(") - repaired.count(")")
     if balance > 0:
+        input_changes.append(
+            InputChange("", ")" * balance, len(repaired), f"补全 {balance} 个右括号")
+        )
         repaired += ")" * balance
         changes.append(f"补全 {balance} 个右括号")
 
@@ -190,6 +299,7 @@ def repair_math_input(
         repaired=repaired,
         automatic_changes=tuple(dict.fromkeys(changes)),
         suggestions=tuple(dict.fromkeys(suggestions)),
+        changes=tuple(input_changes),
     )
 
 
@@ -197,14 +307,27 @@ def analyze_formula(
     text: str,
     allowed_symbols: Mapping[str, sp.Symbol] | Iterable[str | sp.Symbol] | None = None,
     numeric_only: bool = False,
+    context: str = "expression",
 ) -> FormulaAnalysis:
     """Analyze an expression for live editor feedback."""
-    repair = repair_math_input(text, allowed_symbols)
+    repair = repair_math_input(text, allowed_symbols, context=context)
     error_message = None
     error_position = None
     valid = False
     try:
-        parse_math_expr(repair.repaired, allowed_symbols, numeric_only=numeric_only)
+        if context == "equations":
+            parse_equations(repair.repaired, allowed_symbols)
+        elif context == "matrix":
+            parse_matrix(repair.repaired)
+        elif context == "vector":
+            parse_vector(repair.repaired)
+        else:
+            parse_math_expr(
+                repair.repaired,
+                allowed_symbols,
+                numeric_only=numeric_only,
+                context=context,
+            )
         valid = True
     except InputParseError as exc:
         error_message = str(exc)
@@ -214,7 +337,10 @@ def analyze_formula(
         elif repair.repaired.count(")") > repair.repaired.count("("):
             error_position = repair.repaired.rfind(")")
 
-    prefix_match = re.search(r"([A-Za-z_]\w*)$", normalize_math_input(text))
+    prefix_match = re.search(
+        r"([A-Za-z_]\w*)$",
+        normalize_math_input(text, context=context),
+    )
     completions: tuple[str, ...] = ()
     if prefix_match:
         prefix = prefix_match.group(1)
@@ -230,7 +356,7 @@ def analyze_formula(
 
     return FormulaAnalysis(
         original="" if text is None else str(text),
-        normalized=normalize_math_input(text),
+        normalized=normalize_math_input(text, context=context),
         repaired=repair.repaired,
         valid=valid,
         error_message=error_message,
@@ -238,6 +364,7 @@ def analyze_formula(
         completions=completions,
         automatic_changes=repair.automatic_changes,
         suggestions=repair.suggestions,
+        changes=repair.changes,
     )
 
 
@@ -263,6 +390,7 @@ def parse_math_expr(
     text: str,
     allowed_symbols: Mapping[str, sp.Symbol] | Iterable[str | sp.Symbol] | None = None,
     numeric_only: bool = False,
+    context: str = "expression",
 ) -> sp.Expr:
     """Parse a restricted mathematical expression.
 
@@ -270,7 +398,11 @@ def parse_math_expr(
     arithmetic syntax. It rejects Python attributes, strings, containers, and
     unknown names before SymPy receives the expression.
     """
-    normalized = normalize_math_input(text)
+    normalized = repair_math_input(
+        text,
+        allowed_symbols,
+        context=context,
+    ).repaired
     if not normalized:
         raise InputParseError("请输入公式或数值。")
     if len(normalized) > MAX_EXPRESSION_LENGTH:
@@ -302,7 +434,9 @@ def parse_math_expr(
     try:
         expression = sp.sympify(normalized, locals=local_dict, evaluate=True)
     except (TypeError, ValueError, SyntaxError, TokenError) as exc:
-        raise InputParseError("公式语法有误，请检查运算符和括号。") from exc
+        raise InputParseError(
+            "公式语法有误，请检查括号，并确认数字、变量或括号之间有乘号。"
+        ) from exc
     except Exception as exc:
         raise InputParseError("公式无法解析，请检查输入格式。") from exc
 
@@ -324,7 +458,12 @@ def parse_numeric(
     non_zero: bool = False,
 ) -> float:
     """Parse a finite real number and apply common range constraints."""
-    expression = parse_math_expr(text, allowed_symbols={}, numeric_only=True)
+    expression = parse_math_expr(
+        text,
+        allowed_symbols={},
+        numeric_only=True,
+        context="numeric",
+    )
     if expression.has(sp.oo, -sp.oo, sp.zoo, sp.nan) or expression.is_real is False:
         raise InputParseError("请输入有限实数。")
     try:
@@ -346,13 +485,8 @@ def parse_equations(
     allowed_symbols: Mapping[str, sp.Symbol] | Iterable[str | sp.Symbol] | None = None,
 ) -> tuple[list[sp.Expr | sp.Equality], list[sp.Expr]]:
     """Parse equations separated by newlines, semicolons, or commas."""
-    normalized = normalize_math_input(text).replace(";", "\n")
-    chunks = [
-        chunk.strip()
-        for line in normalized.splitlines()
-        for chunk in line.split(",")
-        if chunk.strip()
-    ]
+    normalized = normalize_math_input(text, context="equations")
+    chunks = _split_top_level(normalized, separators={",", "\n"})
     if not chunks:
         raise InputParseError("请至少输入一个方程。")
 
@@ -374,13 +508,39 @@ def parse_equations(
     return equations, standard_forms
 
 
+def _split_top_level(text: str, separators: set[str]) -> list[str]:
+    chunks: list[str] = []
+    current: list[str] = []
+    depth = 0
+    for character in text:
+        if character == "(":
+            depth += 1
+        elif character == ")":
+            depth = max(0, depth - 1)
+        if character in separators and depth == 0:
+            chunk = "".join(current).strip()
+            if chunk:
+                chunks.append(chunk)
+            current = []
+        else:
+            current.append(character)
+    chunk = "".join(current).strip()
+    if chunk:
+        chunks.append(chunk)
+    return chunks
+
+
 def parse_matrix(text: str) -> sp.Matrix:
     """Parse rows separated by newlines and entries separated by spaces/commas."""
     if not text or not text.strip():
         raise InputParseError("请输入矩阵。")
 
+    normalized = normalize_math_input(text, context="matrix").strip()
+    if normalized.startswith("(") and normalized.endswith(")"):
+        normalized = normalized[1:-1].strip()
+
     rows: list[list[sp.Expr]] = []
-    for row_number, row_text in enumerate(text.strip().splitlines(), start=1):
+    for row_number, row_text in enumerate(normalized.splitlines(), start=1):
         entries = [entry for entry in re.split(r"[\s,]+", row_text.strip()) if entry]
         if not entries:
             continue
@@ -399,7 +559,10 @@ def parse_matrix(text: str) -> sp.Matrix:
 
 def parse_vector(text: str) -> sp.Matrix:
     """Parse a comma or whitespace separated vector."""
-    entries = [entry for entry in re.split(r"[\s,]+", (text or "").strip()) if entry]
+    normalized = normalize_math_input(text or "", context="vector").strip()
+    if normalized.startswith("(") and normalized.endswith(")"):
+        normalized = normalized[1:-1].strip()
+    entries = [entry for entry in re.split(r"[\s,]+", normalized) if entry]
     if not entries:
         raise InputParseError("请输入向量。")
     return sp.Matrix([parse_math_expr(entry) for entry in entries])
@@ -413,4 +576,8 @@ def user_error_message(error: Exception, fallback: str = "计算失败。") -> s
         return "计算中出现除以零，请检查输入范围。"
     if isinstance(error, (sp.ShapeError, sp.NonSquareMatrixError)):
         return f"矩阵维度不符合要求：{error}"
+    if isinstance(error, OverflowError):
+        return "数值过大，已超出当前计算或绘图范围。"
+    if isinstance(error, ValueError) and "domain" in str(error).lower():
+        return "输入超出函数定义域，请检查根号、对数或分母中的数值。"
     return fallback

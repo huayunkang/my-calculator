@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime
+from difflib import SequenceMatcher
+from html import escape
 import re
 
 import streamlit as st
@@ -178,9 +180,47 @@ def _undo_value(key: str) -> None:
         _set_value(key, stack.pop())
 
 
+def _accept_repair(key: str) -> None:
+    st.session_state.pop(f"{key}_repair_notice", None)
+
+
+def _undo_repair(key: str) -> None:
+    _undo_value(key)
+    st.session_state.pop(f"{key}_repair_notice", None)
+
+
+def _disable_auto_repair(key: str) -> None:
+    _undo_value(key)
+    st.session_state[f"{key}_auto_repair_disabled"] = True
+    st.session_state.pop(f"{key}_repair_notice", None)
+
+
 def _apply_repair(key: str, repaired: str) -> None:
     _remember_undo(key, _get_value(key))
     _set_value(key, repaired)
+
+
+def _highlight_input_diff(original: str, repaired: str) -> str:
+    matcher = SequenceMatcher(a=original, b=repaired)
+    original_parts: list[str] = []
+    repaired_parts: list[str] = []
+    for operation, a_start, a_end, b_start, b_end in matcher.get_opcodes():
+        old = escape(original[a_start:a_end])
+        new = escape(repaired[b_start:b_end])
+        if operation == "equal":
+            original_parts.append(old)
+            repaired_parts.append(new)
+        else:
+            if old:
+                original_parts.append(f"<mark>{old}</mark>")
+            if new:
+                repaired_parts.append(f"<mark>{new}</mark>")
+    return (
+        '<div class="formula-repair-diff">'
+        f'<div><strong>你的输入：</strong><code>{"".join(original_parts)}</code></div>'
+        f'<div><strong>计算器理解为：</strong><code>{"".join(repaired_parts)}</code></div>'
+        "</div>"
+    )
 
 
 def render_smart_formula_input(
@@ -196,18 +236,29 @@ def render_smart_formula_input(
     preview: bool = True,
     extra_tokens: Sequence[tuple[str, str]] = (),
     numeric_only: bool = False,
+    beginner_mode: bool | None = None,
+    context: str = "expression",
+    beginner_hint: str | None = None,
 ) -> str:
     """Render a debounced formula editor with repair feedback and fallback."""
+    if beginner_mode is None:
+        beginner_mode = st.session_state.get("beginner_mode", True)
     if key not in st.session_state:
         st.session_state[key] = {"value": default} if SMART_FORMULA_COMPONENT else default
 
     value = _get_value(key, default)
-    analysis = analyze_formula(value, allowed_symbols, numeric_only=numeric_only)
+    analysis = analyze_formula(
+        value,
+        allowed_symbols,
+        numeric_only=numeric_only,
+        context=context,
+    )
     auto_source_key = f"{key}_last_auto_source"
     if (
         analysis.automatic_changes
         and analysis.repaired != value
         and st.session_state.get(auto_source_key) != value
+        and not st.session_state.get(f"{key}_auto_repair_disabled", False)
     ):
         _remember_undo(key, value)
         _set_value(key, analysis.repaired)
@@ -222,19 +273,47 @@ def render_smart_formula_input(
     repair_notice = st.session_state.get(f"{key}_repair_notice")
     if repair_notice:
         original, repaired, changes = repair_notice
-        notice_col, undo_col = st.columns([4, 1])
-        notice_col.success(
-            f"已自动修复：`{original}` → `{repaired}`（{'；'.join(changes)}）"
+        if _get_value(key, default) != repaired:
+            _set_value(key, repaired)
+        value = repaired
+        st.success(f"已自动修复：{'；'.join(changes)}")
+        st.markdown(
+            _highlight_input_diff(original, repaired),
+            unsafe_allow_html=True,
+        )
+        keep_col, undo_col, disable_col = st.columns(3)
+        keep_col.button(
+            "保留修复",
+            key=f"{key}_accept_auto",
+            use_container_width=True,
+            on_click=_accept_repair,
+            args=(key,),
         )
         undo_col.button(
             "撤销",
             key=f"{key}_undo_auto",
-            on_click=_undo_value,
+            use_container_width=True,
+            on_click=_undo_repair,
             args=(key,),
         )
-        st.session_state.pop(f"{key}_repair_notice", None)
-        value = _get_value(key, default)
-        analysis = analyze_formula(value, allowed_symbols, numeric_only=numeric_only)
+        disable_col.button(
+            "本次关闭自动修复",
+            key=f"{key}_disable_auto",
+            use_container_width=True,
+            on_click=_disable_auto_repair,
+            args=(key,),
+        )
+        analysis = analyze_formula(
+            value,
+            allowed_symbols,
+            numeric_only=numeric_only,
+            context=context,
+        )
+
+    if beginner_mode:
+        hint = beginner_hint or help_text
+        if hint:
+            st.info(f"新手提示：{hint}", icon="💡")
 
     status = "公式有效" if analysis.valid else (analysis.error_message or "")
     if analysis.error_position is not None:
@@ -254,6 +333,8 @@ def render_smart_formula_input(
         ):
             _remember_undo(key, value)
             _set_value(key, selected)
+            st.session_state.pop(f"{key}_repair_notice", None)
+            st.session_state.pop(f"{key}_last_auto_source", None)
             st.session_state[f"{key}_loaded_example"] = selected
             st.rerun()
 
@@ -286,7 +367,12 @@ def render_smart_formula_input(
             value = st.text_input(label, value=value, key=f"{key}_fallback", help=help_text)
         _set_value(key, value)
 
-    analysis = analyze_formula(value, allowed_symbols, numeric_only=numeric_only)
+    analysis = analyze_formula(
+        value,
+        allowed_symbols,
+        numeric_only=numeric_only,
+        context=context,
+    )
     for index, suggestion in enumerate(analysis.suggestions):
         suggestion_col, action_col = st.columns([4, 1])
         suggestion_col.warning(suggestion, icon="💡")
@@ -305,10 +391,22 @@ def render_smart_formula_input(
                 on_click=_apply_repair,
                 args=(key, suggested_value),
             )
+        elif "中文句号" in suggestion and "。" in value:
+            action_col.button(
+                "替换为小数点",
+                key=f"{key}_suggestion_{index}",
+                on_click=_apply_repair,
+                args=(key, value.replace("。", ".", 1)),
+            )
 
     if preview and analysis.valid:
         try:
-            expression = parse_math_expr(analysis.repaired, allowed_symbols, numeric_only)
+            expression = parse_math_expr(
+                analysis.repaired,
+                allowed_symbols,
+                numeric_only,
+                context=context,
+            )
             st.caption("实时公式预览")
             st.latex(sp.latex(expression))
         except InputParseError:
@@ -369,6 +467,9 @@ def render_formula_input(
     show_keypad: bool = True,
     preview: bool = True,
     extra_tokens: Sequence[tuple[str, str]] = (),
+    beginner_mode: bool | None = None,
+    context: str = "expression",
+    beginner_hint: str | None = None,
 ) -> str:
     return render_smart_formula_input(
         label,
@@ -381,6 +482,9 @@ def render_formula_input(
         show_keypad=show_keypad,
         preview=preview,
         extra_tokens=extra_tokens,
+        beginner_mode=beginner_mode,
+        context=context,
+        beginner_hint=beginner_hint,
     )
 
 
@@ -449,4 +553,8 @@ def render_history_panel() -> None:
                 key=f"reload_history_{index}",
             ):
                 _set_value(item["input_key"], item["expression"])
+                st.session_state.pop(
+                    f"{item['input_key']}_repair_notice",
+                    None,
+                )
                 st.rerun()

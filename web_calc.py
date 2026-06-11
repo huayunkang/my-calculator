@@ -4,10 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 import streamlit.components.v1 as components
-import os
-import urllib.request
-from urllib.error import URLError
+from collections.abc import Mapping
+from pathlib import Path
 
+from beginner_tools import ToolMatch, search_tools
 from calculator_core import (
     InputParseError,
     parse_equations,
@@ -18,6 +18,7 @@ from calculator_core import (
     user_error_message,
 )
 from tool_pages import (
+    render_beginner_toolkit,
     render_complex_calculator,
     render_function_analysis,
     render_physics_toolbox,
@@ -35,24 +36,34 @@ from ui_components import (
 # ==========================================
 @st.cache_resource
 def get_font_path():
-    """全自动获取或下载字体文件"""
-    local_path = "SimHei.ttf"
-    if not os.path.exists(local_path):
-        url = "https://cdn.jsdelivr.net/gh/StellarCN/scp_zh@master/fonts/SimHei.ttf"
-        try:
-            urllib.request.urlretrieve(url, local_path)
-        except (OSError, URLError):
-            pass
-    return local_path if os.path.exists(local_path) else None
+    """Return an optional local font without making startup depend on it."""
+    local_path = Path(__file__).with_name("SimHei.ttf")
+    return str(local_path) if local_path.is_file() else None
 
 def apply_chinese_font():
-    """在每次绘图前强制注入中文支持"""
+    """Use an available CJK font and fall back without blocking startup."""
     f_path = get_font_path()
     if f_path:
-        fm.fontManager.addfont(f_path)
-        prop = fm.FontProperties(fname=f_path)
-        plt.rcParams['font.sans-serif'] = [prop.get_name(), 'sans-serif']
-        plt.rcParams['axes.unicode_minus'] = False 
+        try:
+            fm.fontManager.addfont(f_path)
+            prop = fm.FontProperties(fname=f_path)
+            plt.rcParams["font.sans-serif"] = [prop.get_name(), "sans-serif"]
+        except (OSError, RuntimeError, ValueError):
+            f_path = None
+
+    if not f_path:
+        installed = {font.name for font in fm.fontManager.ttflist}
+        candidates = (
+            "Noto Sans CJK SC",
+            "WenQuanYi Zen Hei",
+            "Microsoft YaHei",
+            "SimHei",
+            "Arial Unicode MS",
+            "DejaVu Sans",
+        )
+        selected = next((name for name in candidates if name in installed), "sans-serif")
+        plt.rcParams["font.sans-serif"] = [selected, "sans-serif"]
+    plt.rcParams["axes.unicode_minus"] = False
 
 
 apply_chinese_font()
@@ -160,7 +171,7 @@ TOOL_GROUPS = {
         "📊 统计概率",
         "🌀 复数计算",
     ],
-    "实用工具": ["🔁 单位换算", "💻 程序员"],
+    "实用工具": ["🧰 新手实用工具", "🔁 单位换算", "💻 程序员"],
     "物理工具": ["🧪 物理工具箱", "🌌 高级物理演示"],
 }
 
@@ -172,8 +183,45 @@ def select_tool(tool_name):
     st.session_state.active_tool = tool_name
 
 
+def load_tool_match(match: ToolMatch):
+    st.session_state.active_tool = match.target
+    if match.example and match.input_key:
+        current = st.session_state.get(match.input_key)
+        if isinstance(current, Mapping):
+            st.session_state[match.input_key] = {**current, "value": match.example}
+        else:
+            st.session_state[match.input_key] = {"value": match.example}
+        st.session_state.pop(f"{match.input_key}_repair_notice", None)
+        st.session_state.pop(f"{match.input_key}_last_auto_source", None)
+
+
 with st.sidebar:
     st.markdown("## 🧮 功能导航")
+    beginner_mode = st.toggle(
+        "🧭 新手辅助",
+        value=True,
+        key="beginner_mode",
+        help="显示输入示例、公式解释和更详细的错误修复提示。",
+    )
+    tool_query = st.text_input(
+        "🔎 搜索我想做的事",
+        key="tool_search_query",
+        placeholder="例如：求导、算电费、公里转英里",
+    )
+    if tool_query:
+        matches = search_tools(tool_query)
+        if matches:
+            for index, match in enumerate(matches):
+                st.button(
+                    f"{match.title} · {match.reason}",
+                    key=f"tool_search_result_{index}_{match.target}",
+                    use_container_width=True,
+                    on_click=load_tool_match,
+                    args=(match,),
+                )
+        else:
+            st.caption("暂时没找到对应工具，可以换一个更短的关键词。")
+    st.markdown("---")
     for group_name, tools in TOOL_GROUPS.items():
         st.markdown(f"### {group_name}")
         for tool_name in tools:
@@ -187,7 +235,7 @@ with st.sidebar:
             )
     st.markdown("---")
     dark_mode = st.toggle("🌙 星空夜景模式", key="dark_mode")
-    st.caption("支持 ^、×、÷、√、π 等常用数学符号。")
+    st.caption("支持中文括号、逗号、全角数字，以及 ^、×、÷、√、π。")
     render_history_panel()
 
 selected_tool = st.session_state.active_tool
@@ -278,6 +326,16 @@ custom_style = f"""
     div.stTextInput > div > div > input {{ background-color: {input_bg}; color: {text_color}; }}
     div.stTextArea textarea {{ background-color: {input_bg}; color: {text_color}; }}
     p, span, label, div[data-testid="stMarkdownContainer"] {{ color: {text_color} !important; }}
+    .formula-repair-diff {{
+        display: grid; gap: 8px; margin: 8px 0 12px;
+        padding: 12px; border-radius: 10px;
+        background: rgba(127, 127, 127, 0.12);
+    }}
+    .formula-repair-diff code {{ white-space: pre-wrap; overflow-wrap: anywhere; }}
+    .formula-repair-diff mark {{
+        background: #ffe082; color: #202124 !important;
+        border-radius: 3px; padding: 1px 2px;
+    }}
     div[data-testid="stSidebar"] {{
         background-color: {card_bg};
         backdrop-filter: blur(12px);
@@ -330,20 +388,22 @@ def plot_graph(func, fill_a=None, fill_b=None):
 # ------------------------------------------
 if selected_tool == "📚 微积分":
     st.markdown("### 📚 微积分计算")
+    if beginner_mode:
+        st.info("输入关于 x 的公式，然后选择普通计算、求导、不定积分或定积分。中文括号和全角运算符可以直接输入。", icon="🧭")
     expr_str = render_formula_input(
         "请输入算式",
         key="math_expr",
-        default="x^2 - 5×x + 6",
+        default="x^2 - 5*x + 6",
         allowed_symbols={"x": x},
         examples=("x^2 - 5*x + 6", "sin(x)^2 + cos(x)^2", "√(x^2 + 1)"),
         help_text="支持 ^、×、÷、√、π；变量使用 x。",
         extra_tokens=(("x", "x"), ("e", "E"), ("exp", "exp(")),
     )
     
-    st.markdown("**(可选) 定积分上下限设置：**")
-    col_a, col_b = st.columns(2)
-    lower_limit_str = col_a.text_input("积分下限 a:", value="0")
-    upper_limit_str = col_b.text_input("积分上限 b:", value="2")
+    with st.expander("定积分上下限（仅计算定积分时需要）", expanded=not beginner_mode):
+        col_a, col_b = st.columns(2)
+        lower_limit_str = col_a.text_input("积分下限 a:", value="0")
+        upper_limit_str = col_b.text_input("积分上限 b:", value="2")
 
     col1, col2, col3, col4 = st.columns(4)
 
@@ -450,6 +510,8 @@ if selected_tool == "📚 微积分":
 # ------------------------------------------
 if selected_tool == "🔍 解方程":
     st.markdown("### 🔍 智能方程求解器")
+    if beginner_mode:
+        st.info("一个方程写一行；也可以用中文逗号或分号分隔。二元方程示例：x+y=3，x-y=1。", icon="🧭")
     eq_str = render_formula_input(
         "请输入方程（每行一个，也可用逗号分隔）",
         key="eq_expr",
@@ -460,6 +522,7 @@ if selected_tool == "🔍 解方程":
         preview=False,
         help_text="例如：x+y=3，换行后输入 x-y=1。",
         extra_tokens=(("x", "x"), ("y", "y"), ("z", "z"), ("=", "="), ("换行", "\n")),
+        context="equations",
     )
     
     if st.button("🚀 解方程并查看过程"):
@@ -505,6 +568,8 @@ if selected_tool == "🔍 解方程":
 # ------------------------------------------
 if selected_tool == "➕ 级数":
     st.markdown("### ➕ 西格玛 (Σ) 求和神器")
+    if beginner_mode:
+        st.info("先输入通项，例如 n²；再设置 n 从几开始、到哪里结束。∞ 可以写成 oo。", icon="🧭")
     sum_expr_str = render_formula_input(
         "求和通项公式",
         key="sum_expr",
@@ -557,7 +622,7 @@ if selected_tool == "🌀 多重积分":
     multi_expr = render_formula_input(
         "被积函数 f(x,y,z)",
         key="multi_expr",
-        default="x × y",
+        default="x*y",
         allowed_symbols={"x": x, "y": y, "z": z},
         examples=("x*y", "x^2 + y^2", "sin(x)*cos(y)"),
         help_text="二重积分使用 x、y；三重积分还可使用 z。",
@@ -650,6 +715,8 @@ if selected_tool == "🌀 多重积分":
 # ------------------------------------------
 if selected_tool == "🧮 线性代数":
     st.markdown("### 🧮 智能矩阵运算中心")
+    if beginner_mode:
+        st.info("每一行代表矩阵的一行，元素可用空格或中英文逗号分隔；也支持输入【1，2；3，4】。", icon="🧭")
     col_m1, col_m2 = st.columns(2)
     mat_A_str = col_m1.text_area("输入矩阵 A:", value="1 2\n3 4", height=120)
     mat_B_str = col_m2.text_area("输入矩阵 B (可选):", value="5 6\n7 8", height=120)
@@ -707,6 +774,8 @@ if selected_tool == "🧮 线性代数":
 # ------------------------------------------
 if selected_tool == "💻 程序员":
     st.markdown("### 🔢 实时进制转换")
+    if beginner_mode:
+        st.info("输入一个整数或能算出整数的表达式，例如 2^8-1。", icon="🧭")
     prog_expr = st.text_input("请输入整数或算式:", value="255", key="prog_input")
     if prog_expr:
         try:
@@ -728,6 +797,8 @@ if selected_tool == "💻 程序员":
 # ------------------------------------------
 if selected_tool == "📐 向量":
     st.markdown("### 📐 空间向量计算器")
+    if beginner_mode:
+        st.info("向量元素可以用空格、英文逗号或中文逗号分隔，例如（1，2，3）。", icon="🧭")
     vc1, vc2 = st.columns(2)
     vecA_str = vc1.text_input("向量 $\\vec{A}$:", value="1, 2, 3")
     vecB_str = vc2.text_input("向量 $\\vec{B}$:", value="4, 5, 6")
@@ -927,6 +998,9 @@ if selected_tool == "📊 统计概率":
 
 if selected_tool == "🌀 复数计算":
     render_complex_calculator(dark_mode)
+
+if selected_tool == "🧰 新手实用工具":
+    render_beginner_toolkit()
 
 if selected_tool == "🔁 单位换算":
     render_unit_converter()
@@ -1373,4 +1447,3 @@ if selected_tool == "🌌 高级物理演示":
                     st.pyplot(fig)
                 except Exception as error:
                     st.error(user_error_message(error, "黑洞熵计算或绘图失败，数值可能超出范围。"))
-

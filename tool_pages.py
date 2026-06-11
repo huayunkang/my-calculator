@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import re
+from datetime import date
 from statistics import NormalDist
 
 import matplotlib.pyplot as plt
@@ -11,6 +12,17 @@ import numpy as np
 import streamlit as st
 import sympy as sp
 
+from beginner_tools import (
+    MATH_CONSTANTS,
+    common_denominator,
+    date_difference,
+    geometry_value,
+    parse_fraction,
+    percentage_change,
+    percentage_value,
+    scientific_notation,
+    solve_quadratic,
+)
 from calculator_core import (
     InputParseError,
     parse_math_expr,
@@ -40,8 +52,14 @@ def _style_plot(dark_mode: bool):
     plt.style.use("dark_background" if dark_mode else "default")
 
 
+def _beginner_intro(message: str) -> None:
+    if st.session_state.get("beginner_mode", True):
+        st.info(message, icon="🧭")
+
+
 def render_function_analysis(dark_mode: bool) -> None:
     st.markdown("### 📈 函数分析实验室")
+    _beginner_intro("输入一个关于 x 的函数，可以一次看到图像、导数、零点、驻点和指定位置的切线。")
     expression_text = render_formula_input(
         "函数 f(x)",
         key="function_analysis_expr",
@@ -133,6 +151,7 @@ def _parse_number_list(text: str) -> np.ndarray:
 
 def render_statistics_probability(dark_mode: bool) -> None:
     st.markdown("### 📊 统计与概率")
+    _beginner_intro("先选择任务，再按示例输入数据。数据之间可以使用空格、英文逗号或中文逗号。")
     mode = st.selectbox("选择工具", ["描述统计", "线性回归", "排列组合", "二项分布", "正态分布"])
 
     if mode == "描述统计":
@@ -232,6 +251,7 @@ def _parse_complex(text: str) -> complex:
 
 def render_complex_calculator(dark_mode: bool) -> None:
     st.markdown("### 🌀 复数计算")
+    _beginner_intro("复数可以写成 3+4i。这里能完成四则运算、求模、辐角、共轭和复数根。")
     c1, c2 = st.columns(2)
     a_text = c1.text_input("复数 A", "3+4i")
     b_text = c2.text_input("复数 B", "1-2i")
@@ -288,6 +308,7 @@ def render_complex_calculator(dark_mode: bool) -> None:
 
 def render_unit_converter() -> None:
     st.markdown("### 🔁 单位换算")
+    _beginner_intro("选择物理量、原单位和目标单位，结果会自动按统一的国际单位换算。")
     category = st.selectbox("物理量", tuple(UNIT_CATEGORIES))
     units = unit_names(category)
     c1, c2, c3 = st.columns([2, 1, 1])
@@ -304,6 +325,7 @@ def render_unit_converter() -> None:
 
 def render_physics_toolbox(dark_mode: bool) -> None:
     st.markdown("### 🧪 实用物理工具箱")
+    _beginner_intro("先选物理分类和公式，再输入带单位的已知量。计算器会展示公式代入步骤。")
     category = st.selectbox("物理分类", categories(), key="physics_tool_category")
     tools = tools_for_category(category)
     tool = st.selectbox("计算工具", tools, format_func=lambda item: item.name, key="physics_tool")
@@ -384,3 +406,139 @@ def render_physics_toolbox(dark_mode: bool) -> None:
             )
         except (PhysicsCalculationError, InputParseError, ValueError, ZeroDivisionError) as error:
             st.error(str(error))
+
+
+def render_beginner_toolkit() -> None:
+    st.markdown("### 🧰 新手实用工具")
+    _beginner_intro("这里集中放置生活计算和中学数学工具。选择任务后，只需填写当前出现的输入框。")
+    tool = st.selectbox(
+        "我想计算",
+        (
+            "分数化简与通分",
+            "比例与百分比",
+            "二次方程",
+            "平面与立体几何",
+            "科学计数法",
+            "常数查询",
+            "日期时间差",
+        ),
+        key="beginner_tool_choice",
+    )
+
+    if tool == "分数化简与通分":
+        operation = st.radio("选择操作", ("化简一个分数", "多个分数通分"), horizontal=True)
+        if operation == "化简一个分数":
+            text = st.text_input("分数", "18/24", help="可以使用中文或英文斜杠输入。")
+            if st.button("化简分数", key="simplify_fraction"):
+                try:
+                    result = parse_fraction(text)
+                    st.success(f"最简分数：{result.numerator}/{result.denominator}")
+                    st.latex(
+                        rf"{text}=\frac{{{result.numerator}}}{{{result.denominator}}}"
+                    )
+                    add_calculation_history("分数化简", text, str(result))
+                except InputParseError as error:
+                    st.error(str(error))
+        else:
+            text = st.text_input("输入多个分数", "1/2，2/3，5/6")
+            if st.button("开始通分", key="common_denominator"):
+                try:
+                    fractions, denominator, numerators = common_denominator(text)
+                    converted = [
+                        f"{numerator}/{denominator}" for numerator in numerators
+                    ]
+                    st.success("通分结果：" + "，".join(converted))
+                    st.write("原分数：", "，".join(str(item) for item in fractions))
+                    add_calculation_history("分数通分", text, "，".join(converted))
+                except InputParseError as error:
+                    st.error(str(error))
+
+    elif tool == "比例与百分比":
+        operation = st.radio(
+            "选择问题",
+            ("求一个数的百分比", "计算增长或下降百分比"),
+            horizontal=True,
+        )
+        first, second = st.columns(2)
+        if operation == "求一个数的百分比":
+            base = first.number_input("原数值", value=200.0)
+            percent = second.number_input("百分比 (%)", value=15.0)
+            result = percentage_value(base, percent)
+            st.metric("结果", f"{result:.10g}")
+            st.caption(f"{base:g} × {percent:g}% = {result:g}")
+        else:
+            original = first.number_input("原数值", value=80.0)
+            current = second.number_input("新数值", value=100.0)
+            try:
+                change = percentage_change(original, current)
+                direction = "增长" if change >= 0 else "下降"
+                st.metric(f"{direction}百分比", f"{abs(change):.6g}%")
+            except InputParseError as error:
+                st.error(str(error))
+
+    elif tool == "二次方程":
+        _beginner_intro("对应方程 ax²+bx+c=0。先计算判别式 Δ=b²-4ac，再代入求根公式。")
+        col_a, col_b, col_c = st.columns(3)
+        a = col_a.number_input("a", value=1.0)
+        b = col_b.number_input("b", value=-5.0)
+        c = col_c.number_input("c", value=6.0)
+        if st.button("求解二次方程", key="solve_quadratic"):
+            try:
+                discriminant, roots = solve_quadratic(a, b, c)
+                st.latex(rf"{a:g}x^2+({b:g})x+({c:g})=0")
+                st.latex(rf"\Delta=b^2-4ac={sp.latex(discriminant)}")
+                st.latex(
+                    rf"x=\frac{{-b\pm\sqrt{{\Delta}}}}{{2a}}"
+                    rf"\Rightarrow x_1={sp.latex(roots[0])},\ x_2={sp.latex(roots[1])}"
+                )
+                add_calculation_history(
+                    "二次方程",
+                    f"{a}x²+{b}x+{c}=0",
+                    str(roots),
+                )
+            except InputParseError as error:
+                st.error(str(error))
+
+    elif tool == "平面与立体几何":
+        shape = st.selectbox(
+            "选择图形",
+            ("矩形面积", "三角形面积", "圆面积", "长方体体积", "圆柱体积", "球体积"),
+        )
+        values: dict[str, float] = {}
+        if shape in {"矩形面积", "长方体体积"}:
+            values["length"] = st.number_input("长度 (m)", min_value=0.0, value=5.0)
+            values["width"] = st.number_input("宽度 (m)", min_value=0.0, value=3.0)
+        if shape == "三角形面积":
+            values["base"] = st.number_input("底边 (m)", min_value=0.0, value=5.0)
+        if shape in {"三角形面积", "长方体体积", "圆柱体积"}:
+            values["height"] = st.number_input("高度 (m)", min_value=0.0, value=2.0)
+        if shape in {"圆面积", "圆柱体积", "球体积"}:
+            values["radius"] = st.number_input("半径 (m)", min_value=0.0, value=2.0)
+        label, result, unit = geometry_value(shape, values)
+        st.metric(label, f"{result:.10g} {unit}")
+
+    elif tool == "科学计数法":
+        text = st.text_input("输入数值", "0.0000123")
+        if st.button("转换科学计数法", key="scientific_notation"):
+            try:
+                coefficient, exponent, notation = scientific_notation(text)
+                st.latex(rf"{coefficient:.10g}\times10^{{{exponent}}}")
+                st.code(notation)
+            except InputParseError as error:
+                st.error(str(error))
+
+    elif tool == "常数查询":
+        name = st.selectbox("选择常数", tuple(MATH_CONSTANTS))
+        value, description = MATH_CONSTANTS[name]
+        st.metric(name, f"{sp.N(value, 12)}")
+        st.info(description)
+        st.latex(sp.latex(value))
+
+    else:
+        today = date.today()
+        first, second = st.columns(2)
+        start = first.date_input("开始日期", value=today, key="date_start")
+        end = second.date_input("结束日期", value=today, key="date_end")
+        days, whole_weeks = date_difference(start, end)
+        st.metric("相差天数", f"{abs(days)} 天")
+        st.caption(f"约为 {whole_weeks} 个完整星期；方向：{'之后' if days >= 0 else '之前'}。")
